@@ -4,13 +4,12 @@
 
 #### Description
 
-A Tiempo? is a local web application that helps passengers explore how flights
-arriving in or departing from Argentina performed against their published schedules.
-It does not cover flights operated entirely outside Argentina. A current
+A Tiempo? is a local web application that helps passengers explore how services
+observed at Argentine airports performed against their published schedules. A current
 flight board can tell a traveler what is happening today, but it cannot answer broader
-questions: How often did this service take off or land close to schedule? What was its
+questions: How often did this service use the runway close to schedule? What was its
 typical time difference? Does one route look different from another? This project
-answers those questions using 417,278 historical flight observations stored in an
+answers those questions using 417,278 historical airport observations stored in an
 included SQLite database.
 
 The project was created as a final project for CS50x. It combines Python, SQL, Flask,
@@ -25,12 +24,20 @@ Home is the main starting point. A visitor can enter a flight number, select an
 origin and destination, choose an airline, or start a comparison. Each choice opens
 the relevant historical report.
 
-Each report separates takeoffs from landings because those records measure different
-events. Reports show the usable sample, percentage within 15 minutes of schedule,
-cancellation rate, average time difference, median time difference and a monthly
-history drawn with regular HTML and CSS. They also show the aircraft models most
-commonly recorded in that selection. Aircraft information is historical context, not
-a confirmation of the equipment assigned to a future flight.
+Reports prefer departures at the searched origin. International inbound routes whose
+foreign origin is outside the dataset use the arrival recorded at their Argentine
+destination. Reports show the usable sample, percentage within the applicable timing
+threshold, cancellation rate, average time difference, median time difference and a
+monthly history drawn with regular HTML and CSS. They also show the
+aircraft models most commonly recorded in that selection. Aircraft information is
+historical context, not a confirmation of the equipment assigned to a future flight.
+
+For flight-number searches, the application keeps the earliest scheduled event for
+each date and then selects the recurring movement type. This addresses a source-data
+issue where a number can be repeated across later events in the same daily rotation.
+When recurrent routes exist, it also removes directions seen on only one date as
+isolated source anomalies. Route searches prefer a departure and fall back to an
+arrival for inbound international services. Airline searches use departures.
 
 The Compare page places two or three items of the same type side by side. For example,
 a visitor can compare AEP-COR with AEP-MDZ, or compare airline codes AR, FO and WJ.
@@ -47,8 +54,8 @@ result to a Jinja template. The file also contains the simple rules used to pars
 comparison items and display user-friendly error pages.
 
 `analytics.py` contains the SQL queries and calculations. It searches the normalized
-database, separates departures and arrivals, calculates medians with a sorted Python
-list and builds monthly groups. The functions use
+database, chooses the observable event, reconstructs one daily observation for a flight
+number, calculates medians with a sorted Python list and builds monthly groups. The functions use
 ordinary loops, lists, dictionaries and conditionals so their behavior can be followed
 line by line.
 
@@ -85,26 +92,32 @@ SQL.
 ## Schedule-performance rules
 
 The default period is the final 365 days in the database. Visitors can instead choose
-90 days or all history. A usable observation is within the displayed threshold when
-its actual takeoff or landing time is no more than 15 minutes after its scheduled
-time. Cancelled flights do not enter that timing calculation.
+90 days or all history. A departure is within the project threshold when its actual
+takeoff time is no more than 30 minutes after STD. An inbound arrival is within its
+threshold when its landing time is no more than 15 minutes after STA. Cancelled flights
+do not enter that timing calculation.
 
 Only the explicit source status `Cancelled` counts as a cancellation. `NO OPERA` is
 kept as an independent “not operating” status. It is not counted as cancelled, within
-15 minutes or delayed and is removed from both rate denominators.
+the applicable threshold or delayed and is removed from both rate denominators.
 
 Some source records contain impossible date differences. A Tiempo? excludes delays
 whose absolute value exceeds six hours from time-difference calculations, while
 showing the number of excluded values. Reports with fewer than ten usable observations
 receive an “Insufficient data” label.
 
-An important limitation is that the departure result compares actual takeoff time
-(ATD) with scheduled departure time (STD). The raw dump contains no departure
+The source also contains placeholder airport values such as `--I`, `-AR` and `-BR`.
+They are not displayed as routes. A record can still contribute to timing metrics when
+its times are valid, while the report states that its counterpart IATA code is missing.
+
+Departure results compare actual takeoff time (ATD) with scheduled departure time
+(STD). The raw dump contains no departure
 off-block times: the `blockoff` field is empty in all 269,377 departure records.
 Therefore, this is not the same as the airline operational metric based on AOBT and
-SOBT, and taxi-out time remains in the displayed difference. The application does not
-subtract an estimated taxi time because doing so would invent data that the source
-does not provide.
+SOBT, and taxi-out time remains in the displayed difference. The 30-minute project
+threshold accounts for this limitation without pretending to reproduce the airline
+D15 metric. Arrival results compare landing time (ATA) with scheduled arrival time
+(STA); they do not measure arrival at the gate.
 
 ## Installation and use
 
@@ -144,16 +157,18 @@ assets.
 
 The dataset covers December 23, 2024 through July 29, 2026. It came from a Failbondi
 dump based on public Aeropuertos Argentina flight information. The source does not
-guarantee completeness or accuracy, and the application is descriptive rather than
-predictive. Travelers should always confirm operational information with their airline
-or airport.
+guarantee completeness or accuracy. The application prefers departure records and
+uses arrivals for inbound international routes when their foreign departure is not
+observed. It applies a conservative daily reconstruction to flight-number searches. It is
+descriptive rather than predictive. Travelers should always confirm operational
+information with their airline or airport.
 
 Questions an evaluator might ask include: How does a SQL JOIN connect a flight to its
-airline? Why are query parameters safer than string formatting? Why are takeoffs and
-landings separated? Why is ATD–STD different from AOBT–SOBT? How is an even-sized
-median calculated? Why is NO OPERA not a cancellation? Why are differences above six
-hours excluded? Each answer is documented in the corresponding short function or in
-the Methodology page.
+airline? Why are query parameters safer than string formatting? Why does a flight-number
+search keep one event per date? Why is ATD–STD different from AOBT–SOBT? How is an
+even-sized median calculated? Why is NO OPERA not a cancellation? Why are differences
+above six hours excluded? Each answer is documented in the corresponding short function
+or in the Methodology page.
 
 ## Acknowledgements
 

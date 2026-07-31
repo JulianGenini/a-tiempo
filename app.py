@@ -53,7 +53,7 @@ def flight_report():
     compact = normalize_flight_number(number)
 
     if not compact:
-        return render_error("Enter a flight number, such as AR 1400.")
+        return render_error("Enter a flight number, such as AR1400.")
 
     start_date, end_date = get_start_date(db, period)
     rows = get_flight_observations(db, compact, start_date)
@@ -61,11 +61,15 @@ def flight_report():
         return render_error("No historical observations match that flight.", 404)
 
     context = report_context(rows, period)
+    if context["report"]["movement"] == "A":
+        description = "See how reliably this inbound service landed compared with its scheduled arrival time."
+    else:
+        description = "See how reliably this service took off compared with its scheduled departure time."
     context.update(
         {
             "title": display_flight_number(compact),
             "eyebrow": "Flight history",
-            "description": "See when this flight took off and landed compared with its published schedule.",
+            "description": description,
             "form_action": "flight_report",
             "hidden_fields": {"number": display_flight_number(compact)},
         }
@@ -90,11 +94,15 @@ def route_report():
         return render_error("No historical observations match that route.", 404)
 
     context = report_context(rows, period)
+    if context["report"]["movement"] == "A":
+        description = "See arrival performance for this international inbound route."
+    else:
+        description = "See departure performance for flights from this origin to this destination."
     context.update(
         {
             "title": origin + " → " + destination,
             "eyebrow": "Route history",
-            "description": "See takeoffs at the origin and landings at the destination for this direction.",
+            "description": description,
             "form_action": "route_report",
             "hidden_fields": {
                 "origin": origin,
@@ -129,7 +137,7 @@ def airline_report():
         {
             "title": code + " · " + airline_name.title(),
             "eyebrow": "Airline history",
-            "description": "See schedule performance across this airline's flights recorded in the database.",
+            "description": "See departure performance across this airline's flights recorded in the database.",
             "form_action": "airline_report",
             "hidden_fields": {"code": code},
         }
