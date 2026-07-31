@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block title %}Home · A Tiempo?{% endblock %}
+
+{% block main %}
+<section class="home-hero">
+    <div class="hero-copy">
+        <p class="eyebrow"><span aria-hidden="true">✈</span> Historical flight data for flights within Argentina</p>
+        <h1>Know your flight before you fly.</h1>
+        <p>
+            For flights arriving in or departing from Argentina. See delays, cancellations,
+            schedules and the aircraft that usually operates them.
+        </p>
+        <div class="hero-actions">
+            <a class="primary-button" href="#search">Search the database</a>
+        </div>
+    </div>
+
+    <aside class="hero-facts" aria-label="Database summary">
+        <p class="hero-facts-title">Built from airport history</p>
+        <dl>
+            <div>
+                <dt>{{ overview.flights // 1000 }}K</dt>
+                <dd>observations</dd>
+            </div>
+            <div>
+                <dt>{{ overview.airports }}</dt>
+                <dd>airports connected</dd>
+            </div>
+            <div>
+                <dt>{{ overview.airlines }}</dt>
+                <dd>airlines represented</dd>
+            </div>
+        </dl>
+    </aside>
+</section>
+
+<section class="search-workspace" id="search" aria-labelledby="search-heading">
+    <div class="workspace-heading">
+        <div>
+            <p class="step-label">Search</p>
+            <h2 id="search-heading">Choose how you want to search</h2>
+        </div>
+    </div>
+
+    <ul class="nav search-tabs" id="search-tabs" role="tablist">
+        {% for name, label in [('flight', 'Flight number'), ('route', 'Route'), ('airline', 'Airline')] %}
+        <li class="nav-item" role="presentation">
+            <button
+                class="nav-link {% if panel == name %}active{% endif %}"
+                id="{{ name }}-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#{{ name }}-panel"
+                type="button"
+                role="tab"
+                aria-controls="{{ name }}-panel"
+                aria-selected="{{ 'true' if panel == name else 'false' }}"
+            >{{ label }}</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content search-tab-content">
+        <div class="tab-pane fade {% if panel == 'flight' %}show active{% endif %}" id="flight-panel" role="tabpanel" aria-labelledby="flight-tab" tabindex="0">
+            <form class="compact-search-form" action="{{ url_for('flight_report') }}" method="get">
+                <div class="search-copy">
+                    <h3>Check one recurring flight</h3>
+                    <p>Enter the airline code and flight number you want to check</p>
+                </div>
+                <div class="search-control">
+                    <label for="flight-number">Flight number</label>
+                    <input id="flight-number" name="number" placeholder="AR1458" required>
+                </div>
+                <input type="hidden" name="period" value="365">
+                <button class="primary-button" type="submit">View history</button>
+            </form>
+            <p class="try-example">Try an example: <a href="{{ url_for('flight_report', number='AR1458', period='365') }}">AR1458</a></p>
+        </div>
+
+        <div class="tab-pane fade {% if panel == 'route' %}show active{% endif %}" id="route-panel" role="tabpanel" aria-labelledby="route-tab" tabindex="0">
+            <form class="compact-search-form route-search-form" action="{{ url_for('route_report') }}" method="get">
+                <div class="search-copy">
+                    <h3>Select a direction</h3>
+                    <p>Origin and destination are separate: A → B is different from B → A.</p>
+                </div>
+                <div class="route-control">
+                    <div>
+                        <label for="origin">Origin</label>
+                        <select id="origin" name="origin" required>
+                            <option value="">Choose airport</option>
+                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or "Unknown" }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <span aria-hidden="true">→</span>
+                    <div>
+                        <label for="destination">Destination</label>
+                        <select id="destination" name="destination" required>
+                            <option value="">Choose airport</option>
+                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or "Unknown" }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <input type="hidden" name="period" value="365">
+                <button class="primary-button" type="submit">View history</button>
+            </form>
+            <p class="try-example">Try an example: <a href="{{ url_for('route_report', origin='AEP', destination='COR', period='365') }}">AEP → COR</a></p>
+        </div>
+
+        <div class="tab-pane fade {% if panel == 'airline' %}show active{% endif %}" id="airline-panel" role="tabpanel" aria-labelledby="airline-tab" tabindex="0">
+            <form class="compact-search-form" action="{{ url_for('airline_report') }}" method="get">
+                <div class="search-copy">
+                    <h3>See the broader airline view</h3>
+                    <p>This combines every flight for that airline found in the selected period.</p>
+                </div>
+                <div class="search-control">
+                    <label for="airline-code">Airline</label>
+                    <select id="airline-code" name="code" required>
+                        <option value="">Choose airline</option>
+                        {% for airline in airlines %}<option value="{{ airline.iata }}">{{ airline.iata }} · {{ airline.name.title() }}</option>{% endfor %}
+                    </select>
+                </div>
+                <input type="hidden" name="period" value="365">
+                <button class="primary-button" type="submit">View history</button>
+            </form>
+            <p class="try-example">Try an example: <a href="{{ url_for('airline_report', code='AR', period='365') }}">AR Aerolíneas Argentinas</a></p>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

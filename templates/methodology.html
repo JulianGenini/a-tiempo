@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block title %}Methodology · A Tiempo?{% endblock %}
+
+{% block main %}
+<section class="page-intro">
+    <p class="eyebrow">What the numbers mean</p>
+    <h1>How it works</h1>
+    <p>
+        This page explains what A Tiempo? can measure, how each result is calculated
+        and where the source data has limits.
+    </p>
+</section>
+
+<section class="article-layout">
+    <aside>
+        <strong>Dataset coverage</strong>
+        <span>{{ first_date }}</span>
+        <span>to</span>
+        <span>{{ last_date }}</span>
+        <span>417,278 observations</span>
+    </aside>
+
+    <article class="prose">
+        <section class="method-card">
+            <span class="method-number">01</span>
+            <h2>What can this project measure?</h2>
+            <p>
+                The source provides a scheduled time and an actual runway time. For a
+                departure, the actual value is the takeoff time (ATD). For an arrival,
+                it is the landing time (ATA). A Tiempo? compares those values with the
+                corresponding scheduled time.
+            </p>
+            <p>
+                The dump does not contain departure off-block time: all 269,377
+                departure records have an empty <code>blockoff</code> field. This means
+                the departure result is <strong>not the same metric an airline
+                calculates from AOBT and SOBT</strong>. Taxi-out time is part of the
+                difference shown here.
+            </p>
+            <p>
+                The application does not subtract an estimated taxi time because that
+                would create a number the source cannot support.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">02</span>
+            <h2>What does “within 15 minutes” mean?</h2>
+            <p>
+                A usable flight is within 15 minutes when its actual takeoff or landing
+                time is no more than 15 minutes after its scheduled time. An early
+                flight has a negative difference and also counts.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">03</span>
+            <h2>Cancellation and NO OPERA</h2>
+            <p>
+                Only the source status <code>Cancelled</code> counts as a cancellation.
+                <code>NO OPERA</code> is separate. It is not treated as cancelled,
+                within 15 minutes or delayed, and is removed from both rate
+                denominators.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">04</span>
+            <h2>Invalid and extreme values</h2>
+            <p>
+                Records without both times cannot contribute to the timing result.
+                Differences whose absolute value exceeds six hours are excluded
+                because they are likely date-parsing or source-data errors.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">05</span>
+            <h2>How are the rates calculated?</h2>
+            <div class="formula">
+                <span>Within-15-minute rate</span>
+                <strong>flights within 15 minutes ÷ all usable flights × 100</strong>
+            </div>
+            <div class="formula">
+                <span>Cancellation rate</span>
+                <strong>cancelled observations ÷ scheduled observations × 100</strong>
+            </div>
+            <p>
+                “Scheduled observations” excludes NO OPERA. “Usable observations”
+                also excludes cancellations, missing times and extreme values.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">06</span>
+            <h2>Why separate takeoffs and landings?</h2>
+            <p>
+                One journey can produce a takeoff record at the origin and a landing
+                record at the destination. Those events answer different questions,
+                so A Tiempo? always shows them separately.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">07</span>
+            <h2>Performance labels</h2>
+            <p>
+                “Often near schedule” means at least 80% were within 15 minutes. “Mixed
+                timing" means 65% to 79.9%. Below 65% is labelled “Often more than 15
+                min late”.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">08</span>
+            <h2>Aircraft information</h2>
+            <p>
+                When a model is present, reports list the aircraft most commonly
+                recorded in the selected historical observations. This is context,
+                not a confirmation of the aircraft assigned to a future flight:
+                airlines can change equipment at any time.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">09</span>
+            <h2>Source and limitations</h2>
+            <p>
+                Historical records came from a Failbondi data dump dated July 29,
+                2026, based on public Aeropuertos Argentina information. The source
+                does not guarantee completeness. The dataset includes only flights
+                arriving in or departing from Argentina; it does not cover flights
+                operated entirely outside the country. Results describe past records;
+                they are not a promise about future performance.
+            </p>
+        </section>
+    </article>
+</section>
+{% endblock %}

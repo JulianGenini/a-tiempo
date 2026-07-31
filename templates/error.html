@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block title %}Unable to complete request · A Tiempo?{% endblock %}
+
+{% block main %}
+<section class="error-page">
+    <span class="movement-code">!</span>
+    <p class="eyebrow">Request not completed</p>
+    <h1>{{ message }}</h1>
+    <a class="primary-button" href="{{ url_for('home') }}">Return home</a>
+</section>
+{% endblock %}

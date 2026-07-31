@@ -1,0 +1,11 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Temporary SQLite files. The final database/flights.db is intentionally included.
+*.db-journal
+*.db-shm
+*.db-wal
+*.db.building

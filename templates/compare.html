@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block title %}Compare · A Tiempo?{% endblock %}
+
+{% block main %}
+<section class="page-intro">
+    <p class="eyebrow">One view, same dates</p>
+    <h1>Compare flight histories.</h1>
+    <p>
+        Put two or three flights, routes or airlines side by side to spot meaningful
+        differences without opening several reports.
+    </p>
+</section>
+
+<section class="form-card">
+    <form action="{{ url_for('compare') }}" method="get" id="compare-form">
+        <div class="form-grid">
+            <div>
+                <label for="compare-kind">What are you comparing?</label>
+                <select id="compare-kind" name="kind">
+                    <option value="flight" {% if kind == "flight" %}selected{% endif %}>Flights</option>
+                    <option value="route" {% if kind == "route" %}selected{% endif %}>Routes</option>
+                    <option value="airline" {% if kind == "airline" %}selected{% endif %}>Airlines</option>
+                </select>
+            </div>
+            <div>
+                <label for="compare-period">Dates to include</label>
+                <select id="compare-period" name="period">
+                    <option value="90" {% if period == "90" %}selected{% endif %}>Last 90 days in database</option>
+                    <option value="365" {% if period == "365" %}selected{% endif %}>Last 365 days in database</option>
+                    <option value="all" {% if period == "all" %}selected{% endif %}>Every stored date</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="comparison-inputs">
+            {% for index in range(3) %}
+            <div>
+                <label for="item{{ index + 1 }}">Choice {{ index + 1 }}{% if index == 2 %} (optional){% endif %}</label>
+                <input
+                    id="item{{ index + 1 }}"
+                    name="item{{ index + 1 }}"
+                    value="{{ items[index] if index < items|length else '' }}"
+                    data-compare-input
+                    {% if index < 2 %}required{% endif %}
+                >
+            </div>
+            {% endfor %}
+        </div>
+        <p class="form-hint" id="compare-hint">Example: AR 1458</p>
+        <button class="primary-button" type="submit">Compare</button>
+    </form>
+</section>
+
+{% if error %}
+<div class="message error-message" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if results %}
+<section class="content-section section-card">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">{{ start_date }} to {{ end_date }}</p>
+            <h2>Comparison result</h2>
+        </div>
+    </div>
+
+    <div class="comparison-table-wrapper">
+        <table class="data-table comparison-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Takeoff within 15 min</th>
+                    <th>Takeoff median vs schedule</th>
+                    <th>Landing within 15 min</th>
+                    <th>Landing median vs schedule</th>
+                    <th>Cancelled</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <th class="mono">{{ result.title }}</th>
+                    <td>{{ result.report.departure.on_time_rate }}% <small>({{ result.report.departure.usable }})</small></td>
+                    <td>{% if result.report.departure.median_delay is not none %}{{ result.report.departure.median_delay }} min{% else %}—{% endif %}</td>
+                    <td>{{ result.report.arrival.on_time_rate }}% <small>({{ result.report.arrival.usable }})</small></td>
+                    <td>{% if result.report.arrival.median_delay is not none %}{{ result.report.arrival.median_delay }} min{% else %}—{% endif %}</td>
+                    <td>
+                        D {{ result.report.departure.cancellation_rate }}% ·
+                        A {{ result.report.arrival.cancellation_rate }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!-- Templates developed with assistance from OpenAI Codex. -->
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta
+            name="description"
+            content="Explore historical performance for flights arriving in or departing from Argentina."
+        >
+        <title>{% block title %}A Tiempo?{% endblock %}</title>
+        <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+        <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+        <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}" defer></script>
+        <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    </head>
+    <body>
+        <a class="skip-link" href="#main-content">Skip to content</a>
+
+        <nav class="navbar navbar-expand-md site-navbar" data-bs-theme="dark" aria-label="Main navigation">
+            <div class="container-fluid site-navbar-inner">
+                <a class="navbar-brand brand" href="{{ url_for('home') }}" aria-label="A Tiempo? home">
+                    <span class="brand-mark" aria-hidden="true">✈</span>
+                    <span class="brand-copy">
+                        <span>A tiempo?</span>
+                        <small>Flight history explorer</small>
+                    </span>
+                </a>
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#main-navigation"
+                    aria-controls="main-navigation"
+                    aria-expanded="false"
+                    aria-label="Open navigation"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="main-navigation">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a
+                                class="nav-link {% if request.endpoint in ['home', 'flight_report', 'route_report', 'airline_report'] %}active{% endif %}"
+                                {% if request.endpoint in ['home', 'flight_report', 'route_report', 'airline_report'] %}aria-current="page"{% endif %}
+                                href="{{ url_for('home') }}"
+                            >Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link {% if request.endpoint == 'compare' %}active{% endif %}"
+                                {% if request.endpoint == 'compare' %}aria-current="page"{% endif %}
+                                href="{{ url_for('compare') }}"
+                            >Compare</a>
+                        </li>
+                        <li class="nav-item">
+                            <a
+                                class="nav-link {% if request.endpoint == 'methodology' %}active{% endif %}"
+                                {% if request.endpoint == 'methodology' %}aria-current="page"{% endif %}
+                                href="{{ url_for('methodology') }}"
+                            >How it works</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <aside class="dataset-notice">
+            <span class="notice-icon" aria-hidden="true">✈</span>
+            <strong>Argentina-only historical dataset:</strong>
+            flights arriving in or departing from Argentina, from December 23, 2024 through July 29, 2026.
+        </aside>
+
+        <main id="main-content">
+            {% block main %}{% endblock %}
+        </main>
+
+        <footer class="site-footer">
+            <div>
+                <strong><span aria-hidden="true">✈</span> A Tiempo?</strong>
+                <p>A CS50x final project that turns airport records into simple flight-history reports.</p>
+            </div>
+            <p>For current travel information, always check with the airline or airport.</p>
+        </footer>
+    </body>
+</html>
