@@ -35,4 +35,25 @@ document.addEventListener("DOMContentLoaded", function () {
         compareKind.addEventListener("change", updateCompareHelp);
         updateCompareHelp();
     }
+
+    const routeDialog = document.querySelector("#route-dialog");
+    const routeDialogOpen = document.querySelector("[data-route-dialog-open]");
+    const routeDialogClose = document.querySelector("[data-route-dialog-close]");
+
+    if (routeDialog && routeDialogOpen && routeDialogClose) {
+        routeDialogOpen.addEventListener("click", function () {
+            routeDialog.showModal();
+        });
+
+        routeDialogClose.addEventListener("click", function () {
+            routeDialog.close();
+        });
+
+        routeDialog.addEventListener("click", function (event) {
+            if (event.target === routeDialog) {
+                routeDialog.close();
+            }
+        });
+
+    }
 });

@@ -17,12 +17,12 @@ class AppTests(unittest.TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Know your flight before you fly.", response.data)
-        self.assertIn(b"aircraft that usually operates them", response.data)
-        self.assertIn(b"flights arriving in or departing from Argentina", response.data)
+        self.assertIn(b"aircraft", response.data)
+        self.assertIn(b"services observed at Argentine airports", response.data)
         self.assertIn(b"Argentina-only historical dataset", response.data)
         self.assertIn(b"Choose how you want to search", response.data)
         self.assertIn(b"Built from airport history", response.data)
-        self.assertIn(b"417K", response.data)
+        self.assertIn(b"269K", response.data)
         self.assertIn(b"164", response.data)
         self.assertIn(b"62", response.data)
         self.assertNotIn(b'id="compare-panel"', response.data)
@@ -40,9 +40,12 @@ class AppTests(unittest.TestCase):
             self.assertIn(b"f1c84b", favicon_response.data)
 
     def test_flight_report(self):
-        response = self.client.get("/flight?number=AR+1458&period=90")
+        response = self.client.get("/flight?number=AR+1458&period=365")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Flight history", response.data)
+        self.assertIn(b"113</strong> departure observations found", response.data)
+        self.assertIn(b"2 routes recorded", response.data)
+        self.assertNotIn(b"Arrivals", response.data)
         self.assertIn(b"Commonly recorded aircraft", response.data)
         self.assertIn(b"Embraer 190/195", response.data)
 
@@ -54,10 +57,26 @@ class AppTests(unittest.TestCase):
         self.assertIn(b"AEP", response.data)
         self.assertIn(b"COR", response.data)
 
+    def test_international_inbound_route_uses_arrival(self):
+        response = self.client.get(
+            "/route?origin=SCL&destination=AEP&period=365"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Arrivals", response.data)
+        self.assertIn(b"landed within 15 minutes", response.data)
+        self.assertIn(b"SCL", response.data)
+        self.assertIn(b"AEP", response.data)
+
     def test_airline_report(self):
         response = self.client.get("/airline?code=AR&period=90")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Airline history", response.data)
+
+    def test_placeholder_airport_is_not_displayed_as_route(self):
+        response = self.client.get("/airline?code=KE&period=365")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"EZE \xe2\x86\x92 --I", response.data)
+        self.assertIn(b"no valid counterpart IATA code", response.data)
 
     def test_rejects_invalid_route(self):
         response = self.client.get("/route?origin=AEP&destination=AEP")
@@ -69,6 +88,7 @@ class AppTests(unittest.TestCase):
         self.assertIn(b"269,377", response.data)
         self.assertIn(b"departure records", response.data)
         self.assertIn(b"AOBT", response.data)
+        self.assertIn(b"earliest scheduled event", response.data)
 
     def test_comparison(self):
         response = self.client.get(
@@ -76,6 +96,7 @@ class AppTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Comparison result", response.data)
+        self.assertIn(b"Observed event", response.data)
 
 if __name__ == "__main__":
     unittest.main()

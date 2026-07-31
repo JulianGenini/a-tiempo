@@ -8,7 +8,8 @@ from datetime import datetime, timedelta
 
 VALID_PERIODS = {"90", "365", "all"}
 MAX_VALID_DELAY_SECONDS = 6 * 60 * 60
-ON_TIME_LIMIT_SECONDS = 15 * 60
+DEPARTURE_ON_TIME_LIMIT_SECONDS = 30 * 60
+ARRIVAL_ON_TIME_LIMIT_SECONDS = 15 * 60
 
 
 def normalize_period(period):
@@ -23,6 +24,7 @@ def get_dataset_dates(db):
         """
         SELECT MIN(flight_date) AS first_date, MAX(flight_date) AS last_date
         FROM flights
+        WHERE movement = 'D'
         """
     )
     return rows[0]["first_date"], rows[0]["last_date"]
@@ -62,6 +64,7 @@ def get_airlines(db):
         SELECT DISTINCT a.iata, a.name
         FROM airlines AS a
         JOIN flights AS f ON f.airline_id = a.id
+        WHERE f.movement = 'D'
         ORDER BY a.name
         """
     )
@@ -85,6 +88,7 @@ def get_overview(db):
                 )
             ) AS airports
         FROM flights
+        WHERE movement = 'D'
         """
     )
     first_date, last_date = get_dataset_dates(db)
@@ -118,6 +122,11 @@ def display_flight_number(value):
     return compact
 
 
+def valid_iata_code(value):
+    """Return True only for three-letter airport codes."""
+    return isinstance(value, str) and len(value) == 3 and value.isalpha()
+
+
 def base_observation_query():
     """Shared SELECT used by the three report searches."""
     return """
@@ -140,42 +149,118 @@ def base_observation_query():
 
 
 def get_flight_observations(db, flight_number, start_date):
+    """Return one recurring observable event for this number on each date.
+
+    The source can repeat a flight number across later events in the same daily
+    rotation. The earliest event is kept per date, then the recurring movement and
+    routes are selected. This supports both departures from Argentina and arrivals
+    whose international origin is outside the dataset.
+    """
     compact = normalize_flight_number(flight_number)
-    return db.execute(
+    rows = db.execute(
         base_observation_query()
         + """
         WHERE REPLACE(UPPER(f.flight_number), ' ', '') = ?
           AND f.flight_date >= ?
-        ORDER BY f.flight_date
+        ORDER BY
+            f.flight_date,
+            f.scheduled_at IS NULL,
+            f.scheduled_at,
+            f.id
         """,
         compact,
         start_date,
     )
+    daily_observations = first_observation_each_day(rows)
+    same_movement = dominant_movement(daily_observations)
+    return recurring_observation_routes(same_movement)
+
+
+def first_observation_each_day(rows):
+    """Keep the first row for each date from rows ordered by scheduled time."""
+    selected = []
+    dates_seen = set()
+
+    for row in rows:
+        date = row["flight_date"]
+        if date not in dates_seen:
+            selected.append(row)
+            dates_seen.add(date)
+
+    return selected
+
+
+def dominant_movement(rows):
+    """Keep the most frequently observed movement, preferring departures on a tie."""
+    counts = {"D": 0, "A": 0}
+    for row in rows:
+        counts[row["movement"]] += 1
+
+    movement = "D"
+    if counts["A"] > counts["D"]:
+        movement = "A"
+
+    selected = []
+    for row in rows:
+        if row["movement"] == movement:
+            selected.append(row)
+    return selected
+
+
+def observation_route(row):
+    """Return an origin-destination pair for a departure or arrival row."""
+    if row["movement"] == "D":
+        return row["airport_iata"], row["counterpart_iata"]
+    return row["counterpart_iata"], row["airport_iata"]
+
+
+def recurring_observation_routes(rows):
+    """Remove one-date route anomalies when the number has recurring routes."""
+    route_counts = {}
+
+    for row in rows:
+        route = observation_route(row)
+        route_counts[route] = route_counts.get(route, 0) + 1
+
+    if not route_counts or max(route_counts.values()) == 1:
+        return rows
+
+    selected = []
+    for row in rows:
+        route = observation_route(row)
+        if route_counts[route] > 1:
+            selected.append(row)
+
+    return selected
 
 
 def get_route_observations(db, origin, destination, start_date):
-    return db.execute(
+    departures = db.execute(
         base_observation_query()
         + """
         WHERE f.flight_date >= ?
-          AND (
-              (
-                  f.movement = 'D'
-                  AND observed.iata = ?
-                  AND counterpart.iata = ?
-              )
-              OR
-              (
-                  f.movement = 'A'
-                  AND counterpart.iata = ?
-                  AND observed.iata = ?
-              )
-          )
+          AND f.movement = 'D'
+          AND observed.iata = ?
+          AND counterpart.iata = ?
         ORDER BY f.flight_date
         """,
         start_date,
         origin,
         destination,
+    )
+    if departures:
+        return departures
+
+    return db.execute(
+        base_observation_query()
+        + """
+        WHERE f.flight_date >= ?
+          AND f.movement = 'A'
+          AND counterpart.iata = ?
+          AND observed.iata = ?
+        ORDER BY f.flight_date
+        """,
+        start_date,
         origin,
         destination,
     )
@@ -188,6 +273,7 @@ def get_airline_observations(db, airline_code, start_date):
         JOIN airlines AS airline ON airline.id = f.airline_id
         WHERE UPPER(airline.iata) = ?
           AND f.flight_date >= ?
+          AND f.movement = 'D'
         ORDER BY f.flight_date
         """,
         airline_code,
@@ -209,17 +295,17 @@ def median(values):
     return (ordered[middle - 1] + ordered[middle]) / 2
 
 
-def performance_label(on_time_rate, usable_observations):
+def performance_label(on_time_rate, usable_observations, threshold_minutes):
     if usable_observations < 10:
         return "Insufficient data", "neutral"
     if on_time_rate >= 80:
         return "Often near schedule", "good"
     if on_time_rate >= 65:
         return "Mixed timing", "warning"
-    return "Often more than 15 min late", "bad"
+    return "Often more than " + str(threshold_minutes) + " min late", "bad"
 
 
-def calculate_metrics(rows):
+def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECONDS):
     """Calculate all report metrics with explicit, explainable rules."""
     scheduled = 0
     cancelled = 0
@@ -250,7 +336,7 @@ def calculate_metrics(rows):
             continue
 
         delays.append(delay)
-        if delay <= ON_TIME_LIMIT_SECONDS:
+        if delay <= on_time_limit_seconds:
             on_time += 1
 
     usable = len(delays)
@@ -268,7 +354,8 @@ def calculate_metrics(rows):
         average_delay = sum(delays) / len(delays) / 60
         median_delay = median(delays) / 60
 
-    label, tone = performance_label(on_time_rate, usable)
+    threshold_minutes = on_time_limit_seconds // 60
+    label, tone = performance_label(on_time_rate, usable, threshold_minutes)
 
     return {
         "observations": len(rows),
@@ -291,26 +378,13 @@ def calculate_metrics(rows):
     }
 
 
-def movement_rows(rows, movement):
-    selected = []
-    for row in rows:
-        if row["movement"] == movement:
-            selected.append(row)
-    return selected
-
-
 def route_pairs(rows):
-    """Build origin-destination pairs without mixing arrivals and departures."""
+    """Build origin-destination pairs from the observed movement."""
     pairs = set()
     for row in rows:
-        if row["movement"] == "D":
-            origin = row["airport_iata"]
-            destination = row["counterpart_iata"]
-        else:
-            origin = row["counterpart_iata"]
-            destination = row["airport_iata"]
+        origin, destination = observation_route(row)
 
-        if origin and destination:
+        if valid_iata_code(origin) and valid_iata_code(destination):
             pairs.add((origin, destination))
 
     labels = []
@@ -319,28 +393,32 @@ def route_pairs(rows):
     return labels
 
 
-def monthly_trend(rows):
-    """Group observations by month and movement for simple CSS charts."""
+def invalid_route_count(rows):
+    """Count observations whose origin or destination has no valid IATA code."""
+    invalid = 0
+    for row in rows:
+        origin, destination = observation_route(row)
+        if not valid_iata_code(origin) or not valid_iata_code(destination):
+            invalid += 1
+    return invalid
+
+
+def monthly_trend(rows, on_time_limit_seconds):
+    """Group observations by month for simple CSS charts."""
     groups = {}
 
     for row in rows:
         month = row["flight_date"][:7]
-        key = (month, row["movement"])
-        if key not in groups:
-            groups[key] = []
-        groups[key].append(row)
+        if month not in groups:
+            groups[month] = []
+        groups[month].append(row)
 
     result = []
-    for key in sorted(groups):
-        month, movement = key
-        metrics = calculate_metrics(groups[key])
+    for month in sorted(groups):
+        metrics = calculate_metrics(groups[month], on_time_limit_seconds)
         result.append(
             {
                 "month": month,
-                "movement": movement,
-                "movement_label": "Departures"
-                if movement == "D"
-                else "Arrivals",
                 "on_time_rate": metrics["on_time_rate"],
                 "bar_width": metrics["on_time_rate"],
                 "usable": metrics["usable"],
@@ -388,13 +466,37 @@ def aircraft_summary(rows, limit=4):
 
 
 def build_report(rows):
-    departures = movement_rows(rows, "D")
-    arrivals = movement_rows(rows, "A")
+    movement = "D"
+    if rows:
+        movement = rows[0]["movement"]
+
+    if movement == "A":
+        threshold_seconds = ARRIVAL_ON_TIME_LIMIT_SECONDS
+        movement_name = "Arrivals"
+        movement_label = "arrival"
+        event_verb = "landed"
+        scheduled_code = "STA"
+        actual_code = "ATA"
+    else:
+        threshold_seconds = DEPARTURE_ON_TIME_LIMIT_SECONDS
+        movement_name = "Departures"
+        movement_label = "departure"
+        event_verb = "took off"
+        scheduled_code = "STD"
+        actual_code = "ATD"
+
     return {
         "total_observations": len(rows),
-        "departure": calculate_metrics(departures),
-        "arrival": calculate_metrics(arrivals),
-        "trend": monthly_trend(rows),
+        "performance": calculate_metrics(rows, threshold_seconds),
+        "movement": movement,
+        "movement_name": movement_name,
+        "movement_label": movement_label,
+        "event_verb": event_verb,
+        "threshold_minutes": threshold_seconds // 60,
+        "scheduled_code": scheduled_code,
+        "actual_code": actual_code,
+        "trend": monthly_trend(rows, threshold_seconds),
         "routes": route_pairs(rows),
+        "invalid_route_observations": invalid_route_count(rows),
         "aircraft": aircraft_summary(rows),
     }

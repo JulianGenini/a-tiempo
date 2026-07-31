@@ -18,7 +18,7 @@
         <span>{{ first_date }}</span>
         <span>to</span>
         <span>{{ last_date }}</span>
-        <span>417,278 observations</span>
+        <span>417,278 airport observations</span>
     </aside>
 
     <article class="prose">
@@ -26,10 +26,11 @@
             <span class="method-number">01</span>
             <h2>What can this project measure?</h2>
             <p>
-                The source provides a scheduled time and an actual runway time. For a
-                departure, the actual value is the takeoff time (ATD). For an arrival,
-                it is the landing time (ATA). A Tiempo? compares those values with the
-                corresponding scheduled time.
+                The source provides scheduled times and actual runway times. For a
+                departure, A Tiempo? compares takeoff time (ATD) with scheduled
+                departure time (STD). For an international route whose origin is
+                outside the observed Argentine airports, it compares landing time
+                (ATA) at the Argentine destination with scheduled arrival time (STA).
             </p>
             <p>
                 The dump does not contain departure off-block time: all 269,377
@@ -42,15 +43,25 @@
                 The application does not subtract an estimated taxi time because that
                 would create a number the source cannot support.
             </p>
+            <p>
+                Arrival results use landing rather than arrival at the gate, so they
+                are also a runway-based measure and not the airline's in-block metric.
+            </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">02</span>
-            <h2>What does “within 15 minutes” mean?</h2>
+            <h2>What are the timing thresholds?</h2>
             <p>
-                A usable flight is within 15 minutes when its actual takeoff or landing
-                time is no more than 15 minutes after its scheduled time. An early
-                flight has a negative difference and also counts.
+                A departure is within the displayed threshold when it takes off no more
+                than <strong>30 minutes</strong> after STD. The wider threshold accounts
+                for the fact that ATD includes normal taxi-out time; it is a transparent
+                project rule, not the airline industry's D15 measure.
+            </p>
+            <p>
+                An inbound arrival is within the threshold when it lands no more than
+                <strong>15 minutes</strong> after STA. An early takeoff or landing has a
+                negative difference and also counts.
             </p>
         </section>
 
@@ -60,7 +71,7 @@
             <p>
                 Only the source status <code>Cancelled</code> counts as a cancellation.
                 <code>NO OPERA</code> is separate. It is not treated as cancelled,
-                within 15 minutes or delayed, and is removed from both rate
+                within the applicable threshold or delayed, and is removed from both rate
                 denominators.
             </p>
         </section>
@@ -73,14 +84,21 @@
                 Differences whose absolute value exceeds six hours are excluded
                 because they are likely date-parsing or source-data errors.
             </p>
+            <p>
+                Placeholder airport values such as <code>--I</code>, <code>-AR</code>
+                or <code>-BR</code> are not valid IATA codes. Their observations can
+                still contribute to timing metrics when the times are valid, but the
+                placeholders are excluded from route coverage and identified in the
+                report.
+            </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">05</span>
             <h2>How are the rates calculated?</h2>
             <div class="formula">
-                <span>Within-15-minute rate</span>
-                <strong>flights within 15 minutes ÷ all usable flights × 100</strong>
+                <span>Within-threshold rate</span>
+                <strong>flights within the event threshold ÷ all usable flights × 100</strong>
             </div>
             <div class="formula">
                 <span>Cancellation rate</span>
@@ -94,21 +112,59 @@
 
         <section class="method-card">
             <span class="method-number">06</span>
-            <h2>Why separate takeoffs and landings?</h2>
+            <h2>How is a flight number reconstructed?</h2>
             <p>
-                One journey can produce a takeoff record at the origin and a landing
-                record at the destination. Those events answer different questions,
-                so A Tiempo? always shows them separately.
+                Some source rows repeat one flight number across later events in the
+                same daily rotation. A flight-number search therefore selects the
+                earliest scheduled event for each date and keeps the movement type
+                recorded most frequently. This supports departures from Argentina and
+                inbound arrivals whose foreign departure is outside the dataset. The
+                rule produces at most one observation per flight number and service date.
+            </p>
+            <p>
+                When a number has recurring routes, directions recorded on only one
+                date are also excluded as isolated source anomalies. If the database
+                contains only one observation for a flight, it is preserved and the
+                report labels the sample as insufficient.
+            </p>
+            <p>
+                A route report prefers a departure at its origin. If none exists because
+                the route starts outside Argentina, it uses the arrival recorded at the
+                Argentine destination. Airline reports remain departure-based and use
+                every matching departure.
             </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">07</span>
-            <h2>Performance labels</h2>
+            <h2>How are the performance labels assigned?</h2>
             <p>
-                “Often near schedule” means at least 80% were within 15 minutes. “Mixed
-                timing" means 65% to 79.9%. Below 65% is labelled “Often more than 15
-                min late”.
+                The label is based on the percentage of usable observations that were
+                within the applicable timing threshold. The scale is the same for
+                departures and arrivals; only the threshold changes.
+            </p>
+            <dl class="performance-scale">
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill good">Often near schedule</span></dt>
+                    <dd><strong>80% to 100%</strong> within the threshold.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill warning">Mixed timing</span></dt>
+                    <dd><strong>65% to 79.9%</strong> within the threshold.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill bad">Often more than X min late</span></dt>
+                    <dd><strong>Below 65%</strong> within the threshold. <code>X</code> is 30 minutes for departures and 15 minutes for arrivals.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill neutral">Insufficient data</span></dt>
+                    <dd>Fewer than <strong>10 usable observations</strong>; no performance label is treated as reliable.</dd>
+                </div>
+            </dl>
+            <p>
+                Early takeoffs or landings count as within the threshold. For example,
+                a departure marked “Often near schedule” has at least 80% of its usable
+                observations taking off no more than 30 minutes after STD.
             </p>
         </section>
 
@@ -130,9 +186,10 @@
                 Historical records came from a Failbondi data dump dated July 29,
                 2026, based on public Aeropuertos Argentina information. The source
                 does not guarantee completeness. The dataset includes only flights
-                arriving in or departing from Argentina; it does not cover flights
-                operated entirely outside the country. Results describe past records;
-                they are not a promise about future performance.
+                observed at Argentine airports. Results use departures when the origin
+                is observed and arrivals for international inbound routes. They describe
+                past records and use a conservative reconstruction for flight-number
+                searches; they are not a promise about future performance.
             </p>
         </section>
     </article>

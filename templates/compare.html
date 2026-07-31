@@ -7,8 +7,8 @@
     <p class="eyebrow">One view, same dates</p>
     <h1>Compare flight histories.</h1>
     <p>
-        Put two or three flights, routes or airlines side by side to spot meaningful
-        differences without opening several reports.
+        Put two or three flights, routes or airlines side by side to compare their
+        historical departure performance.
     </p>
 </section>
 
@@ -70,10 +70,9 @@
             <thead>
                 <tr>
                     <th>Item</th>
-                    <th>Takeoff within 15 min</th>
-                    <th>Takeoff median vs schedule</th>
-                    <th>Landing within 15 min</th>
-                    <th>Landing median vs schedule</th>
+                    <th>Observed event</th>
+                    <th>Within threshold</th>
+                    <th>Median vs schedule</th>
                     <th>Cancelled</th>
                 </tr>
             </thead>
@@ -81,14 +80,10 @@
                 {% for result in results %}
                 <tr>
                     <th class="mono">{{ result.title }}</th>
-                    <td>{{ result.report.departure.on_time_rate }}% <small>({{ result.report.departure.usable }})</small></td>
-                    <td>{% if result.report.departure.median_delay is not none %}{{ result.report.departure.median_delay }} min{% else %}—{% endif %}</td>
-                    <td>{{ result.report.arrival.on_time_rate }}% <small>({{ result.report.arrival.usable }})</small></td>
-                    <td>{% if result.report.arrival.median_delay is not none %}{{ result.report.arrival.median_delay }} min{% else %}—{% endif %}</td>
-                    <td>
-                        D {{ result.report.departure.cancellation_rate }}% ·
-                        A {{ result.report.arrival.cancellation_rate }}%
-                    </td>
+                    <td>{{ result.report.movement_name }} · {{ result.report.threshold_minutes }} min</td>
+                    <td>{{ result.report.performance.on_time_rate }}% <small>({{ result.report.performance.usable }})</small></td>
+                    <td>{% if result.report.performance.median_delay is not none %}{{ result.report.performance.median_delay }} min{% else %}—{% endif %}</td>
+                    <td>{{ result.report.performance.cancellation_rate }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
