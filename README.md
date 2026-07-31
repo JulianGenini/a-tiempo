@@ -63,9 +63,7 @@ comparison form.
 `database/flights.db` is the included SQLite database. `database/schema.sql`
 documents its tables, foreign keys, indexes and readable `flight_details` view. The
 database is normalized into flights, airports, airlines, aircraft and flight statuses.
-`docs/aa2000-public-api-reference.md` documents the observed public endpoints and
-their limitations as background documentation. The application does not call those
-endpoints. The `tests` directory contains `unittest` tests for calculations and Flask
+The `tests` directory contains `unittest` tests for calculations and Flask
 routes.
 
 ## How the code works
@@ -162,5 +160,4 @@ the Methodology page.
 Historical data was obtained from a Failbondi dump and originated from public
 Aeropuertos Argentina information. OpenAI Codex assisted with database preparation,
 code, testing, design and documentation. That assistance is cited in source-code
-comments in accordance with the CS50 academic honesty policy. The project owner is
-responsible for understanding, reviewing and presenting the submitted work.
+comments in accordance with the CS50 academic honesty policy.
