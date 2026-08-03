@@ -210,6 +210,13 @@ def compare():
                     break
                 results.append(result)
 
+    movements = []
+    for result in results:
+        movement = result["report"]["movement"]
+        if movement not in movements:
+            movements.append(movement)
+    mixed_movements = len(movements) > 1
+
     return render_template(
         "compare.html",
         kind=kind,
@@ -217,6 +224,7 @@ def compare():
         items=items,
         results=results,
         error=error,
+        mixed_movements=mixed_movements,
         start_date=start_date,
         end_date=end_date,
     )

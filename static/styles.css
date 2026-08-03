@@ -704,6 +704,15 @@ input::placeholder {
     box-shadow: 0 4px 16px rgba(24, 49, 55, 0.04);
 }
 
+.comparison-note {
+    margin: 0 0 1rem;
+    border-left: 4px solid var(--yellow);
+    background: var(--yellow-light);
+    padding: 0.75rem 0.9rem;
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -721,7 +730,6 @@ input::placeholder {
 .data-table thead th {
     background: var(--blue-dark);
     color: white;
-    color: #45494d;
     font-size: 0.78rem;
 }
 
@@ -900,29 +908,11 @@ input::placeholder {
     text-align: center;
 }
 
-.aircraft-context {
-    width: min(calc(100% - 2rem), var(--content-width));
-    margin: 1.75rem auto 0;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface);
-    box-shadow: 0 5px 18px rgba(24, 49, 55, 0.05);
-    padding: 1.35rem;
-}
-
-.aircraft-context-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-}
-
 .aircraft-context h2 {
     margin: 0;
     font-size: 1.3rem;
 }
 
-.aircraft-context-heading > p,
 .aircraft-coverage {
     max-width: 480px;
     margin: 0;
@@ -930,13 +920,8 @@ input::placeholder {
     font-size: 0.85rem;
 }
 
-.aircraft-context-heading > p {
-    position: relative;
-    top: 1rem;
-}
-
 .aircraft-coverage {
-    margin-top: 1rem;
+    margin-bottom: 1rem;
 }
 
 .aircraft-list {
@@ -1475,16 +1460,6 @@ input::placeholder {
         align-items: flex-start;
     }
 
-    .aircraft-context-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 0.45rem;
-    }
-
-    .aircraft-context-heading > p {
-        top: 0;
-    }
-
     .filter-bar form {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1520,11 +1495,7 @@ input::placeholder {
     }
 
     .trend-row {
-        grid-template-columns: 78px 1fr;
-    }
-
-    .trend-row > :last-child {
-        display: none;
+        grid-template-columns: 78px minmax(0, 1fr) auto;
     }
 
     .site-footer {
@@ -1613,16 +1584,17 @@ input::placeholder {
     }
 
     .trend-row {
-        grid-template-columns: 70px 1fr;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
         gap: 0.5rem;
         font-size: 0.82rem;
     }
 
     .bar-cell {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(24px, 1fr) auto;
+        gap: 0.35rem;
     }
 
     .bar-cell strong {
-        display: none;
+        white-space: nowrap;
     }
 }

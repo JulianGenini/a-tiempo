@@ -49,6 +49,23 @@ class AppTests(unittest.TestCase):
         self.assertIn(b"Commonly recorded aircraft", response.data)
         self.assertIn(b"Embraer 190/195", response.data)
 
+    def test_flight_identity_stays_stable_across_periods(self):
+        expected_observations = {"90": 7, "365": 49}
+
+        for period, observations in expected_observations.items():
+            with self.subTest(period=period):
+                response = self.client.get(
+                    "/flight?number=5U401&period=" + period
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b"Arrivals", response.data)
+                self.assertNotIn(b"Departures", response.data)
+                self.assertIn(
+                    str(observations).encode()
+                    + b"</strong> arrival observations found",
+                    response.data,
+                )
+
     def test_route_report(self):
         response = self.client.get(
             "/route?origin=AEP&destination=COR&period=365"
@@ -97,6 +114,18 @@ class AppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Comparison result", response.data)
         self.assertIn(b"Observed event", response.data)
+        self.assertNotIn(b"different observed events", response.data)
+
+    def test_mixed_comparison_explains_departure_and_arrival_thresholds(self):
+        response = self.client.get(
+            "/compare?kind=flight&item1=AR1458&item2=BA249&period=365"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"different observed events and thresholds", response.data)
+        self.assertIn(b"Departures", response.data)
+        self.assertIn(b"Arrivals", response.data)
+        self.assertIn(b"30 minutes", response.data)
+        self.assertIn(b"15-minute threshold", response.data)
 
 if __name__ == "__main__":
     unittest.main()

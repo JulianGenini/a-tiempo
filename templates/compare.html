@@ -8,7 +8,7 @@
     <h1>Compare flight histories.</h1>
     <p>
         Put two or three flights, routes or airlines side by side to compare their
-        historical departure performance.
+        historical schedule performance.
     </p>
 </section>
 
@@ -64,6 +64,14 @@
             <h2>Comparison result</h2>
         </div>
     </div>
+
+    {% if mixed_movements %}
+    <p class="comparison-note">
+        These results use different observed events and thresholds. Departures compare
+        takeoff with schedule using 30 minutes. International arrivals use landing with
+        a 15-minute threshold when their origin is outside the Argentine airport dataset.
+    </p>
+    {% endif %}
 
     <div class="comparison-table-wrapper">
         <table class="data-table comparison-table">
