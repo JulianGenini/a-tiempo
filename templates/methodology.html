@@ -3,24 +3,17 @@
 {% block title %}Methodology · A Tiempo?{% endblock %}
 
 {% block main %}
-<section class="page-intro">
+<section class="page-intro methodology-intro">
     <p class="eyebrow">What the numbers mean</p>
     <h1>How it works</h1>
     <p>
         This page explains what A Tiempo? can measure, how each result is calculated
-        and where the source data has limits.
+        and where the source data has limits. It draws on 417,278 airport observations
+        recorded from {{ first_date }} through {{ last_date }}.
     </p>
 </section>
 
-<section class="article-layout">
-    <aside>
-        <strong>Dataset coverage</strong>
-        <span>{{ first_date }}</span>
-        <span>to</span>
-        <span>{{ last_date }}</span>
-        <span>417,278 airport observations</span>
-    </aside>
-
+<section class="article-layout methodology-layout">
     <article class="prose">
         <section class="method-card">
             <span class="method-number">01</span>
@@ -34,7 +27,7 @@
             </p>
             <p>
                 The dump does not contain departure off-block time: all 269,377
-                departure records have an empty <code>blockoff</code> field. This means
+                departure records have an empty <strong>blockoff</strong> field. This means
                 the departure result is <strong>not the same metric an airline
                 calculates from AOBT and SOBT</strong>. Taxi-out time is part of the
                 difference shown here.
@@ -69,8 +62,8 @@
             <span class="method-number">03</span>
             <h2>Cancellation and NO OPERA</h2>
             <p>
-                Only the source status <code>Cancelled</code> counts as a cancellation.
-                <code>NO OPERA</code> is separate. It is not treated as cancelled,
+                Only the source status <strong>Cancelled</strong> counts as a cancellation.
+                <strong>NO OPERA</strong> is separate. It is not treated as cancelled,
                 within the applicable threshold or delayed, and is removed from both rate
                 denominators.
             </p>
@@ -85,8 +78,8 @@
                 because they are likely date-parsing or source-data errors.
             </p>
             <p>
-                Placeholder airport values such as <code>--I</code>, <code>-AR</code>
-                or <code>-BR</code> are not valid IATA codes. Their observations can
+                Placeholder airport values such as <strong>--I</strong>, <strong>-AR</strong>
+                or <strong>-BR</strong> are not valid IATA codes. Their observations can
                 still contribute to timing metrics when the times are valid, but the
                 placeholders are excluded from route coverage and identified in the
                 report.
@@ -122,10 +115,10 @@
                 rule produces at most one observation per flight number and service date.
             </p>
             <p>
-                When a number has recurring routes, directions recorded on only one
-                date are also excluded as isolated source anomalies. If the database
-                contains only one observation for a flight, it is preserved and the
-                report labels the sample as insufficient.
+                When a flight number appears on more than one route, directions recorded
+                on only one date are excluded as isolated source anomalies. If the database
+                contains only one observation for a flight, it is preserved and the report
+                labels the sample as insufficient.
             </p>
             <p>
                 A route report prefers a departure at its origin. If none exists because
@@ -145,16 +138,16 @@
             </p>
             <dl class="performance-scale">
                 <div class="performance-scale-item">
-                    <dt><span class="status-pill good">Often near schedule</span></dt>
+                    <dt><span class="status-pill good">Usually near schedule</span></dt>
                     <dd><strong>80% to 100%</strong> within the threshold.</dd>
                 </div>
                 <div class="performance-scale-item">
-                    <dt><span class="status-pill warning">Mixed timing</span></dt>
+                    <dt><span class="status-pill warning">Mixed schedule performance</span></dt>
                     <dd><strong>65% to 79.9%</strong> within the threshold.</dd>
                 </div>
                 <div class="performance-scale-item">
-                    <dt><span class="status-pill bad">Often more than X min late</span></dt>
-                    <dd><strong>Below 65%</strong> within the threshold. <code>X</code> is 30 minutes for departures and 15 minutes for arrivals.</dd>
+                    <dt><span class="status-pill bad">Often more than X minutes late</span></dt>
+                    <dd><strong>Below 65%</strong> within the threshold. <strong>X</strong> is 30 minutes for departures and 15 minutes for arrivals.</dd>
                 </div>
                 <div class="performance-scale-item">
                     <dt><span class="status-pill neutral">Insufficient data</span></dt>
@@ -163,7 +156,7 @@
             </dl>
             <p>
                 Early takeoffs or landings count as within the threshold. For example,
-                a departure marked “Often near schedule” has at least 80% of its usable
+                a departure marked “Usually near schedule” has at least 80% of its usable
                 observations taking off no more than 30 minutes after STD.
             </p>
         </section>

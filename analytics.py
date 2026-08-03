@@ -305,10 +305,10 @@ def performance_label(on_time_rate, usable_observations, threshold_minutes):
     if usable_observations < 10:
         return "Insufficient data", "neutral"
     if on_time_rate >= 80:
-        return "Often near schedule", "good"
+        return "Usually near schedule", "good"
     if on_time_rate >= 65:
-        return "Mixed timing", "warning"
-    return "Often more than " + str(threshold_minutes) + " min late", "bad"
+        return "Mixed schedule performance", "warning"
+    return "Often more than " + str(threshold_minutes) + " minutes late", "bad"
 
 
 def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECONDS):

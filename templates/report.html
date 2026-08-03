@@ -26,26 +26,24 @@
 
     <dl class="metric-grid">
         <div>
-            <dt>Flights used</dt>
+            <dt>Flights analysed</dt>
             <dd>{{ "{:,}".format(metrics.usable) }}</dd>
         </div>
         <div>
             <dt>Cancelled</dt>
-            <dd>{{ metrics.cancellation_rate }}%</dd>
+            <dd>{% if metrics.cancelled == 0 %}None recorded{% else %}{{ metrics.cancelled }} ({{ metrics.cancellation_rate }}%){% endif %}</dd>
         </div>
         <div>
-            <dt>Average vs schedule</dt>
-            <dd>{% if metrics.average_delay is not none %}{{ metrics.average_delay }} min{% else %}—{% endif %}</dd>
-        </div>
-        <div>
-            <dt>Typical difference (median)</dt>
-            <dd>{% if metrics.median_delay is not none %}{{ metrics.median_delay }} min{% else %}—{% endif %}</dd>
+            <dt>Average {{ report.movement_name[:-1]|lower }}</dt>
+            <dd>{% if metrics.average_delay is none %}—{% elif metrics.average_delay > 0 %}{{ metrics.average_delay }} min late{% elif metrics.average_delay < 0 %}{{ -metrics.average_delay }} min early{% else %}On schedule{% endif %}</dd>
         </div>
     </dl>
 
-    <p class="quality-note">
-        {{ metrics.cancelled }} cancelled ·
-        {{ metrics.excluded_outliers }} invalid time differences removed
+    <p class="calculation-note">
+        Based on flights with valid timing data{% if metrics.excluded_outliers %};
+        {{ metrics.excluded_outliers }} invalid time difference{% if metrics.excluded_outliers != 1 %}s{% endif %}
+        excluded{% endif %}.
+        <a href="{{ url_for('methodology') }}">Read Methodology</a>
     </p>
     {% endif %}
 </article>
@@ -120,7 +118,7 @@
     {{ metric_panel(report) }}
 </section>
 
-<details class="content-section section-card trend-section">
+<details class="content-section section-card trend-section report-detail">
     <summary class="trend-summary">
         <div class="section-heading">
             <div>
@@ -162,7 +160,7 @@
     </div>
 </details>
 
-<details class="content-section section-card trend-section aircraft-context">
+<details class="content-section section-card trend-section aircraft-context report-detail">
     <summary class="trend-summary">
         <div class="section-heading">
             <div>
@@ -203,14 +201,4 @@
     </div>
 </details>
 
-<section class="method-note">
-    <strong>How to read this report</strong>
-    <p>
-        This report compares {{ report.actual_code }} with {{ report.scheduled_code }}
-        using a {{ report.threshold_minutes }}-minute threshold. Flight-number
-        searches keep only the earliest scheduled event for each date and remove
-        isolated one-date routes when recurrent directions exist. Read the
-        <a href="{{ url_for('methodology') }}">methodology</a>.
-    </p>
-</section>
 {% endblock %}
