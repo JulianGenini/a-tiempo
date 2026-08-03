@@ -116,42 +116,6 @@
 </dialog>
 {% endif %}
 
-<section class="aircraft-context" aria-labelledby="aircraft-heading">
-    <div class="aircraft-context-heading">
-        <div>
-            <p class="eyebrow">Aircraft context</p>
-            <h2 id="aircraft-heading">Commonly recorded aircraft</h2>
-        </div>
-        <p>Equipment can change. This is historical context, not the aircraft assigned to a future flight.</p>
-    </div>
-
-    {% if report.aircraft.models %}
-    <p class="aircraft-coverage">
-        Aircraft information appears in <strong>{{ "{:,}".format(report.aircraft.identified) }}</strong>
-        of {{ "{:,}".format(report.total_observations) }} records.
-    </p>
-    <div class="aircraft-list">
-        {% for aircraft in report.aircraft.models %}
-        <article class="aircraft-item">
-            <div>
-                <h3>{{ aircraft.model }}</h3>
-                <p>{{ "{:,}".format(aircraft.records) }} historical records</p>
-            </div>
-            <div class="aircraft-share">
-                <strong>{{ aircraft.share }}%</strong>
-                <span>of records with aircraft data</span>
-            </div>
-            <span class="aircraft-bar" aria-hidden="true">
-                <span style="width: {{ aircraft.share }}%"></span>
-            </span>
-        </article>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="empty-state">No aircraft model was recorded for this search.</p>
-    {% endif %}
-</section>
-
 <section class="movement-grid">
     {{ metric_panel(report) }}
 </section>
@@ -195,6 +159,47 @@
     {% else %}
     <p class="empty-state">There is not enough information to build a monthly history.</p>
     {% endif %}
+    </div>
+</details>
+
+<details class="content-section section-card trend-section aircraft-context">
+    <summary class="trend-summary">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Aircraft context</p>
+                <h2 id="aircraft-heading">Commonly recorded aircraft</h2>
+            </div>
+            <p>Equipment can change. This is historical context, not the aircraft assigned to a future flight.</p>
+        </div>
+        <span class="trend-toggle">View details</span>
+    </summary>
+
+    <div class="trend-content">
+        {% if report.aircraft.models %}
+        <p class="aircraft-coverage">
+            Aircraft information appears in <strong>{{ "{:,}".format(report.aircraft.identified) }}</strong>
+            of {{ "{:,}".format(report.total_observations) }} records.
+        </p>
+        <div class="aircraft-list">
+            {% for aircraft in report.aircraft.models %}
+            <article class="aircraft-item">
+                <div>
+                    <h3>{{ aircraft.model }}</h3>
+                    <p>{{ "{:,}".format(aircraft.records) }} historical records</p>
+                </div>
+                <div class="aircraft-share">
+                    <strong>{{ aircraft.share }}%</strong>
+                    <span>of records with aircraft data</span>
+                </div>
+                <span class="aircraft-bar" aria-hidden="true">
+                    <span style="width: {{ aircraft.share }}%"></span>
+                </span>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No aircraft model was recorded for this search.</p>
+        {% endif %}
     </div>
 </details>
 

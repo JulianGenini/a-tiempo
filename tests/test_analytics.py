@@ -12,11 +12,31 @@ from analytics import (
     display_flight_number,
     dominant_movement,
     first_observation_each_day,
+    get_flight_observations,
     median,
     normalize_flight_number,
     recurring_observation_routes,
     route_pairs,
 )
+
+
+class StaticRowsDatabase:
+    """Small test double that returns rows in the database query's expected order."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def execute(self, query, *arguments):
+        return self.rows
+
+
+def observation(flight_date, movement, airport_iata, counterpart_iata):
+    return {
+        "flight_date": flight_date,
+        "movement": movement,
+        "airport_iata": airport_iata,
+        "counterpart_iata": counterpart_iata,
+    }
 
 
 class AnalyticsTests(unittest.TestCase):
@@ -65,6 +85,48 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(len(selected), 2)
         self.assertEqual(selected[0]["name"], "first")
         self.assertEqual(selected[1]["name"], "next day")
+
+    def test_flight_movement_is_selected_before_the_period_filter(self):
+        rows = [
+            observation("2025-01-01", "A", "AEP", "SCL"),
+            observation("2025-02-01", "A", "AEP", "SCL"),
+            observation("2025-03-01", "A", "AEP", "SCL"),
+            observation("2026-01-01", "D", "AEP", "COR"),
+            observation("2026-01-02", "D", "AEP", "COR"),
+            observation("2026-01-03", "A", "AEP", "SCL"),
+        ]
+        database = StaticRowsDatabase(rows)
+
+        full_period = get_flight_observations(
+            database, "AR 1000", "2025-01-01"
+        )
+        recent_period = get_flight_observations(
+            database, "AR 1000", "2026-01-01"
+        )
+
+        self.assertEqual(len(full_period), 4)
+        self.assertEqual(len(recent_period), 1)
+        self.assertTrue(all(row["movement"] == "A" for row in full_period))
+        self.assertTrue(all(row["movement"] == "A" for row in recent_period))
+        self.assertEqual(
+            [row["flight_date"] for row in recent_period], ["2026-01-03"]
+        )
+
+    def test_flight_routes_are_selected_before_the_period_filter(self):
+        rows = [
+            observation("2025-01-01", "D", "AEP", "COR"),
+            observation("2025-02-01", "D", "AEP", "COR"),
+            observation("2026-01-01", "D", "AEP", "COR"),
+            observation("2026-01-02", "D", "AEP", "MDZ"),
+        ]
+        database = StaticRowsDatabase(rows)
+
+        selected = get_flight_observations(
+            database, "AR 1000", "2026-01-01"
+        )
+
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["counterpart_iata"], "COR")
 
     def test_builds_departure_only_report(self):
         rows = [

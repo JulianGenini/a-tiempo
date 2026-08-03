@@ -153,15 +153,16 @@ def get_flight_observations(db, flight_number, start_date):
 
     The source can repeat a flight number across later events in the same daily
     rotation. The earliest event is kept per date, then the recurring movement and
-    routes are selected. This supports both departures from Argentina and arrivals
-    whose international origin is outside the dataset.
+    routes are selected using the complete history. The date filter is applied last
+    so changing the report period does not change which event the number represents.
+    This supports both departures from Argentina and arrivals whose international
+    origin is outside the dataset.
     """
     compact = normalize_flight_number(flight_number)
     rows = db.execute(
         base_observation_query()
         + """
         WHERE REPLACE(UPPER(f.flight_number), ' ', '') = ?
-          AND f.flight_date >= ?
         ORDER BY
             f.flight_date,
             f.scheduled_at IS NULL,
@@ -169,11 +170,16 @@ def get_flight_observations(db, flight_number, start_date):
             f.id
         """,
         compact,
-        start_date,
     )
     daily_observations = first_observation_each_day(rows)
     same_movement = dominant_movement(daily_observations)
-    return recurring_observation_routes(same_movement)
+    recurring_routes = recurring_observation_routes(same_movement)
+
+    selected = []
+    for row in recurring_routes:
+        if row["flight_date"] >= start_date:
+            selected.append(row)
+    return selected
 
 
 def first_observation_each_day(rows):
