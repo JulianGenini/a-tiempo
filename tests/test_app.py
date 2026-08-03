@@ -113,7 +113,9 @@ class AppTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Comparison result", response.data)
-        self.assertIn(b"Observed event", response.data)
+        self.assertIn(b"Typical difference", response.data)
+        self.assertIn(b"Flights analysed", response.data)
+        self.assertNotIn(b"Observed event", response.data)
         self.assertNotIn(b"different observed events", response.data)
 
     def test_mixed_comparison_explains_departure_and_arrival_events(self):
@@ -123,7 +125,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"different observed events", response.data)
         self.assertIn(b"Departures", response.data)
-        self.assertIn(b"Arrivals", response.data)
+        self.assertIn(b"international arrivals", response.data)
         self.assertIn(b"Both use a 30-minute threshold", response.data)
 
 if __name__ == "__main__":

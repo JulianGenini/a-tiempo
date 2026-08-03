@@ -179,7 +179,11 @@ def comparison_result(kind, item, start_date):
 
     if not rows:
         return None
-    return {"title": title, "report": build_report(rows)}
+    return {
+        "title": title,
+        "route": route if kind == "route" else None,
+        "report": build_report(rows),
+    }
 
 
 @app.route("/compare")

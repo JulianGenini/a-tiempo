@@ -433,17 +433,9 @@ main {
 
 .route-control {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65rem;
     align-items: end;
-}
-
-.route-control > span {
-    display: grid;
-    min-height: 44px;
-    place-items: center;
-    color: var(--muted);
-    font-family: "Courier New", monospace;
 }
 
 .try-example {
@@ -670,7 +662,13 @@ input::placeholder {
 
 .trend-summary .section-heading {
     flex: 1;
+    align-items: center;
     margin-bottom: 0;
+}
+
+.trend-summary .section-heading > p {
+    align-self: center;
+    margin: 0;
 }
 
 .trend-toggle {
@@ -702,6 +700,16 @@ input::placeholder {
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 4px 16px rgba(24, 49, 55, 0.04);
+}
+
+.comparison-results {
+    padding-top: 2.5rem;
+    padding-bottom: 3.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.comparison-table td strong {
+    font-family: "Courier New", monospace;
 }
 
 .comparison-note {
@@ -908,11 +916,6 @@ input::placeholder {
     text-align: center;
 }
 
-.aircraft-context h2 {
-    margin: 0;
-    font-size: 1.3rem;
-}
-
 .aircraft-coverage {
     max-width: 480px;
     margin: 0;
@@ -1020,6 +1023,30 @@ input::placeholder {
     gap: 0.65rem;
 }
 
+.movement-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.65rem;
+}
+
+.arrival-context {
+    display: inline-block;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--yellow);
+    border-radius: 5px;
+    background: #f7faf9;
+    padding: 0.25rem 0.5rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.2;
+}
+
+.arrival-context strong {
+    color: var(--blue-dark);
+}
+
 .movement-code {
     display: grid;
     width: 32px;
@@ -1043,20 +1070,18 @@ input::placeholder {
 
 .status-summary {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    min-width: 190px;
-    gap: 0.4rem;
-    padding: 0.65rem 0.8rem 0.7rem;
-    border: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid #b8c9ca;
     border-radius: 8px;
-    background: #f7faf9;
-    box-shadow: 0 2px 8px rgba(24, 49, 55, 0.04);
+    background: var(--blue-light);
 }
 
 .status-kicker {
-    color: var(--muted);
-    font-size: 0.68rem;
+    color: var(--blue-dark);
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -1065,8 +1090,9 @@ input::placeholder {
 }
 
 .status-summary .status-pill {
-    padding: 0.28rem 0.6rem;
-    font-size: 0.76rem;
+    padding: 0.3rem 0.65rem;
+    background: var(--surface);
+    font-size: 0.78rem;
     text-align: center;
 }
 
@@ -1106,7 +1132,7 @@ input::placeholder {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
-    margin: 1.3rem 0;
+    margin: 1rem 0 1.25rem;
 }
 
 .primary-metric strong {
@@ -1272,17 +1298,6 @@ input::placeholder {
     padding: 1.25rem 1.35rem;
 }
 
-.method-card::after {
-    position: absolute;
-    top: 0;
-    right: 1rem;
-    width: 36px;
-    height: 5px;
-    border-radius: 0 0 3px 3px;
-    background: var(--yellow);
-    content: "";
-}
-
 .method-number {
     display: block;
     margin-bottom: 0.45rem;
@@ -1295,6 +1310,7 @@ input::placeholder {
 
 .method-card h2 {
     margin: 0;
+    color: var(--blue-dark);
 }
 
 .method-card p:last-child {
@@ -1374,9 +1390,6 @@ input::placeholder {
 }
 
 .site-footer {
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
     width: min(calc(100% - 2rem), var(--content-width));
     margin: 2rem auto 0;
     border-top: 1px solid var(--border);
@@ -1385,9 +1398,38 @@ input::placeholder {
     font-size: 0.82rem;
 }
 
+.site-footer-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 2rem;
+}
+
 .site-footer p {
     max-width: 470px;
     margin: 0.2rem 0 0;
+}
+
+.site-footer .site-credit {
+    width: 100%;
+    max-width: none;
+    margin: 1rem auto 0;
+    text-align: center;
+}
+
+.site-footer .travel-notice {
+    justify-self: end;
+    text-align: right;
+}
+
+.site-footer a {
+    color: inherit;
+    font-weight: 700;
+    text-underline-offset: 0.18em;
+}
+
+.site-footer a:hover {
+    color: var(--ink);
 }
 
 @media (max-width: 760px) {
@@ -1456,7 +1498,21 @@ input::placeholder {
     }
 
     .status-summary {
-        align-items: flex-start;
+        align-self: center;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .primary-metric {
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 1.75rem 0;
+        text-align: center;
+    }
+
+    .primary-metric strong {
+        font-size: 2.65rem;
     }
 
     .filter-bar form {
@@ -1498,8 +1554,18 @@ input::placeholder {
     }
 
     .site-footer {
+        padding-bottom: 1.5rem;
+    }
+
+    .site-footer-main {
         flex-direction: column;
+        align-items: flex-start;
         gap: 0.5rem;
+    }
+
+    .site-footer .travel-notice {
+        justify-self: start;
+        text-align: left;
     }
 }
 
@@ -1525,11 +1591,6 @@ input::placeholder {
         grid-template-columns: 1fr;
     }
 
-    .route-control > span {
-        min-height: 18px;
-        transform: rotate(90deg);
-    }
-
     .filter-bar form {
         grid-template-columns: 1fr;
     }
@@ -1542,6 +1603,15 @@ input::placeholder {
         align-items: flex-start;
         flex-direction: column;
         gap: 0.4rem;
+    }
+
+    .trend-summary .section-heading {
+        align-items: flex-start;
+    }
+
+    .trend-summary .section-heading > p {
+        align-self: flex-start;
+        margin-top: 0.3rem;
     }
 
     .trend-summary {

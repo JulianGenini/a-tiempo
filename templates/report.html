@@ -8,7 +8,12 @@
     <header>
         <div class="movement-heading">
             <span class="movement-code">{{ report.movement }}</span>
-            <h2>{{ report.movement_name }}</h2>
+            <div class="movement-title-row">
+                <h2>{{ report.movement_name }}</h2>
+                {% if report.movement == "A" %}
+                <span class="arrival-context"><strong>Arrival-based</strong> · departure not covered by dataset</span>
+                {% endif %}
+            </div>
         </div>
         <div class="status-summary {{ metrics.tone }}" aria-label="Performance result">
             <span class="status-kicker">Observed performance</span>
@@ -175,8 +180,8 @@
     <div class="trend-content">
         {% if report.aircraft.models %}
         <p class="aircraft-coverage">
-            Aircraft information appears in <strong>{{ "{:,}".format(report.aircraft.identified) }}</strong>
-            of {{ "{:,}".format(report.total_observations) }} records.
+            Aircraft data available for <strong>{{ "{:,}".format(report.aircraft.identified) }}</strong>
+            of {{ "{:,}".format(report.total_observations) }} flights (<strong>{{ "%.1f"|format(report.aircraft.identified * 100 / report.total_observations) }}%</strong>).
         </p>
         <div class="aircraft-list">
             {% for aircraft in report.aircraft.models %}
@@ -187,7 +192,7 @@
                 </div>
                 <div class="aircraft-share">
                     <strong>{{ aircraft.share }}%</strong>
-                    <span>of records with aircraft data</span>
+                    <span>of identified aircraft records</span>
                 </div>
                 <span class="aircraft-bar" aria-hidden="true">
                     <span style="width: {{ aircraft.share }}%"></span>

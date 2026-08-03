@@ -24,13 +24,14 @@ removes one-date directions when recurrent routes exist. This canonical choice u
 the complete stored history before the selected period is applied, so changing the
 period changes the sample without changing which event the number represents.
 
-A route report prefers a departure observed at its origin. If an international
-inbound route has no observed departure because its origin is outside Argentina, the
-application uses the arrival recorded at its Argentine destination. Airline reports
-use recorded departures. The Compare page places two or three flights, routes or
-airlines side by side for the same period. When a comparison mixes departures and
-inbound arrivals, the page explains their different observed events and shared
-30-minute threshold.
+A route report first uses a departure observed at its requested origin. If no matching
+departure is available, it falls back to the arrival recorded at the requested
+destination. In most cases this represents an international inbound service, whose
+foreign departure is outside the Argentine-airport dataset. Airline reports use
+recorded departures. The Compare page places two or three flights, routes or airlines
+side by side for the same period. When a comparison mixes departures and inbound
+arrivals, the page explains their different observed events and shared 30-minute
+threshold.
 
 Reports show usable observations, timing and cancellation rates, average and median
 differences, monthly history and commonly recorded aircraft models. Aircraft details
@@ -68,19 +69,22 @@ and Flask renders the finished HTML with Jinja.
 
 For departures, the project compares actual takeoff time (ATD) with scheduled
 departure time (STD) and counts a result as within the project threshold when it is
-no more than 30 minutes late. The source has no departure off-block times, so this is
-not the airline metric based on AOBT and SOBT: taxi-out time remains in the
+no more than 30 minutes late. The included database has no departure off-block time,
+so this is not the airline metric based on AOBT and SOBT: taxi-out time remains in the
 difference. For inbound arrivals, it compares landing time (ATA) with scheduled
 arrival time (STA) and uses the same 30-minute threshold. Arrival results describe
 runway landing, not arrival at the gate.
 
 Only the explicit source status `Cancelled` counts as a cancellation. `NO OPERA` is
-kept separate and removed from both rate denominators. Records without usable times
-do not enter timing calculations, and absolute differences above six hours are
-excluded as likely source errors. Reports with fewer than ten usable observations
-receive an “Insufficient data” label. Placeholder airport values such as `--I`, `-AR`
-and `-BR` are not displayed as routes, although a record can still contribute to
-timing metrics when its times are valid.
+kept separate and removed from both rate denominators. Other statuses are not
+automatically excluded: a record, including a `DIVERTED` record, contributes to timing
+metrics when it has a valid timing difference. Records without usable times do not
+enter timing calculations, and absolute differences above six hours are excluded as
+likely source errors. Reports with fewer than ten usable observations receive an
+“Insufficient data” label. Placeholder airport values such as `--I`, `-AR` and `-BR`
+are not displayed as routes, although a record can still contribute to timing metrics
+when its times are valid. Aircraft reports normalize repeated identical model names and
+omit ambiguous values that join different models rather than guessing an assignment.
 
 ## Data source and limitations
 

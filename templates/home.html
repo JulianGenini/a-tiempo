@@ -91,7 +91,6 @@
                             {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or "Unknown" }}</option>{% endfor %}
                         </select>
                     </div>
-                    <span aria-hidden="true">→</span>
                     <div>
                         <label for="destination">Destination</label>
                         <select id="destination" name="destination" required>
