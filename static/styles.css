@@ -991,7 +991,12 @@ input::placeholder {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
-    padding: 1.75rem 0;
+    padding: 1.5rem 0 2rem;
+}
+
+.report-detail {
+    margin-top: 0;
+    margin-bottom: 2rem;
 }
 
 .movement-panel {
@@ -1117,7 +1122,7 @@ input::placeholder {
 
 .metric-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     margin: 0;
     border-top: 1px solid var(--border);
     border-left: 1px solid var(--border);
@@ -1144,6 +1149,13 @@ input::placeholder {
 .empty-state {
     color: var(--muted);
     font-size: 0.82rem;
+}
+
+.calculation-note {
+    margin: 0.9rem 0 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
 }
 
 .trend-table {
@@ -1236,27 +1248,14 @@ input::placeholder {
 }
 
 .article-layout {
-    display: grid;
-    grid-template-columns: 190px 1fr;
-    gap: 3rem;
-    align-items: start;
     padding-bottom: 4rem;
 }
 
-.article-layout aside {
-    border-top: 4px solid var(--yellow);
-    border-radius: 7px;
-    background: var(--blue-dark);
-    color: white;
-    padding: 1rem;
-}
-
-.article-layout aside span {
-    display: block;
-    margin-top: 0.3rem;
-    color: #c5d6d8;
-    font-family: "Courier New", monospace;
-    font-size: 0.82rem;
+.methodology-intro,
+.methodology-layout {
+    max-width: 720px;
+    margin-right: auto;
+    margin-left: auto;
 }
 
 .prose {
@@ -1286,10 +1285,10 @@ input::placeholder {
 
 .method-number {
     display: block;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.45rem;
     color: var(--blue);
     font-family: "Courier New", monospace;
-    font-size: 0.72rem;
+    font-size: 0.88rem;
     font-weight: 700;
     letter-spacing: 0.08em;
 }

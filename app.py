@@ -18,6 +18,7 @@ from analytics import (
     get_overview,
     get_route_observations,
     get_start_date,
+    format_date,
     normalize_flight_number,
     normalize_period,
 )
@@ -64,7 +65,7 @@ def flight_report():
     if context["report"]["movement"] == "A":
         description = "See how reliably this inbound service landed compared with its scheduled arrival time."
     else:
-        description = "See how reliably this service took off compared with its scheduled departure time."
+        description = "See how often this service departed close to its scheduled time."
     context.update(
         {
             "title": display_flight_number(compact),
@@ -249,8 +250,8 @@ def methodology():
     first_date, last_date = get_start_date(db, "all")
     return render_template(
         "methodology.html",
-        first_date=first_date,
-        last_date=last_date,
+        first_date=format_date(first_date),
+        last_date=format_date(last_date),
     )
 
 

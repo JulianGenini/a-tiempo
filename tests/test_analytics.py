@@ -15,6 +15,7 @@ from analytics import (
     get_flight_observations,
     median,
     normalize_flight_number,
+    performance_label,
     recurring_observation_routes,
     route_pairs,
 )
@@ -72,6 +73,20 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(metrics["on_time_rate"], 66.7)
         self.assertEqual(metrics["cancellation_rate"], 16.7)
         self.assertEqual(metrics["median_delay"], 30.0)
+
+    def test_assigns_performance_labels(self):
+        self.assertEqual(
+            performance_label(80, 10, 30), ("Usually near schedule", "good")
+        )
+        self.assertEqual(
+            performance_label(65, 10, 30), ("Mixed schedule performance", "warning")
+        )
+        self.assertEqual(
+            performance_label(64.9, 10, 15), ("Often more than 15 minutes late", "bad")
+        )
+        self.assertEqual(
+            performance_label(100, 9, 30), ("Insufficient data", "neutral")
+        )
 
     def test_keeps_first_ordered_departure_for_each_date(self):
         rows = [

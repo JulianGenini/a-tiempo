@@ -64,8 +64,8 @@
         <div class="tab-pane fade {% if panel == 'flight' %}show active{% endif %}" id="flight-panel" role="tabpanel" aria-labelledby="flight-tab" tabindex="0">
             <form class="compact-search-form" action="{{ url_for('flight_report') }}" method="get">
                 <div class="search-copy">
-                    <h3>Check one recurring flight</h3>
-                    <p>Enter the airline code and number to reconstruct its first observable event on each date.</p>
+                    <h3>Look up a flight</h3>
+                    <p>Enter the airline code and flight number to view its history.</p>
                 </div>
                 <div class="search-control">
                     <label for="flight-number">Flight number</label>
@@ -81,7 +81,7 @@
             <form class="compact-search-form route-search-form" action="{{ url_for('route_report') }}" method="get">
                 <div class="search-copy">
                     <h3>Select a direction</h3>
-                    <p>Origin and destination are separate: A → B is different from B → A.</p>
+                    <p>A → B and B → A are treated as different routes.</p>
                 </div>
                 <div class="route-control">
                     <div>
@@ -109,8 +109,8 @@
         <div class="tab-pane fade {% if panel == 'airline' %}show active{% endif %}" id="airline-panel" role="tabpanel" aria-labelledby="airline-tab" tabindex="0">
             <form class="compact-search-form" action="{{ url_for('airline_report') }}" method="get">
                 <div class="search-copy">
-                    <h3>See the broader airline view</h3>
-                    <p>This combines every recorded departure for that airline in the selected period.</p>
+                    <h3>View airline activity</h3>
+                    <p>This includes all recorded departures for the selected airline during the chosen period.</p>
                 </div>
                 <div class="search-control">
                     <label for="airline-code">Airline</label>
