@@ -161,7 +161,7 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(report["threshold_minutes"], 30)
         self.assertEqual(report["routes"], ["AEP → COR"])
 
-    def test_builds_arrival_report_with_fifteen_minute_threshold(self):
+    def test_builds_arrival_report_with_thirty_minute_threshold(self):
         rows = [
             {
                 "flight_date": "2026-01-01",
@@ -176,8 +176,8 @@ class AnalyticsTests(unittest.TestCase):
         report = build_report(rows)
 
         self.assertEqual(report["movement_name"], "Arrivals")
-        self.assertEqual(report["threshold_minutes"], 15)
-        self.assertEqual(report["performance"]["on_time_rate"], 0.0)
+        self.assertEqual(report["threshold_minutes"], 30)
+        self.assertEqual(report["performance"]["on_time_rate"], 100.0)
         self.assertEqual(report["routes"], ["SCL → AEP"])
 
     def test_removes_one_date_route_anomalies_when_routes_recur(self):
@@ -237,6 +237,25 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(summary["models"][0]["model"], "Airbus A320")
         self.assertEqual(summary["models"][0]["records"], 2)
         self.assertEqual(summary["models"][0]["share"], 66.7)
+
+    def test_normalizes_duplicate_aircraft_models_and_excludes_ambiguous_values(self):
+        summary = aircraft_summary(
+            [
+                {"aircraft_model": "Boeing 747Boeing 747"},
+                {"aircraft_model": "Boeing 747Boeing 787"},
+                {"aircraft_model": "Boeing 787"},
+            ]
+        )
+
+        self.assertEqual(summary["identified"], 2)
+        self.assertEqual(summary["missing"], 1)
+        self.assertEqual(
+            summary["models"],
+            [
+                {"model": "Boeing 747", "records": 1, "share": 50.0},
+                {"model": "Boeing 787", "records": 1, "share": 50.0},
+            ],
+        )
 
 
 if __name__ == "__main__":

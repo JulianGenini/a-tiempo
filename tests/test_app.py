@@ -80,7 +80,7 @@ class AppTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Arrivals", response.data)
-        self.assertIn(b"landed within 15 minutes", response.data)
+        self.assertIn(b"landed within 30 minutes", response.data)
         self.assertIn(b"SCL", response.data)
         self.assertIn(b"AEP", response.data)
 
@@ -116,16 +116,15 @@ class AppTests(unittest.TestCase):
         self.assertIn(b"Observed event", response.data)
         self.assertNotIn(b"different observed events", response.data)
 
-    def test_mixed_comparison_explains_departure_and_arrival_thresholds(self):
+    def test_mixed_comparison_explains_departure_and_arrival_events(self):
         response = self.client.get(
             "/compare?kind=flight&item1=AR1458&item2=BA249&period=365"
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"different observed events and thresholds", response.data)
+        self.assertIn(b"different observed events", response.data)
         self.assertIn(b"Departures", response.data)
         self.assertIn(b"Arrivals", response.data)
-        self.assertIn(b"30 minutes", response.data)
-        self.assertIn(b"15-minute threshold", response.data)
+        self.assertIn(b"Both use a 30-minute threshold", response.data)
 
 if __name__ == "__main__":
     unittest.main()

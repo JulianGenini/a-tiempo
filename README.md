@@ -29,7 +29,8 @@ inbound route has no observed departure because its origin is outside Argentina,
 application uses the arrival recorded at its Argentine destination. Airline reports
 use recorded departures. The Compare page places two or three flights, routes or
 airlines side by side for the same period. When a comparison mixes departures and
-inbound arrivals, the page explains their different 30- and 15-minute thresholds.
+inbound arrivals, the page explains their different observed events and shared
+30-minute threshold.
 
 Reports show usable observations, timing and cancellation rates, average and median
 differences, monthly history and commonly recorded aircraft models. Aircraft details
@@ -70,8 +71,8 @@ departure time (STD) and counts a result as within the project threshold when it
 no more than 30 minutes late. The source has no departure off-block times, so this is
 not the airline metric based on AOBT and SOBT: taxi-out time remains in the
 difference. For inbound arrivals, it compares landing time (ATA) with scheduled
-arrival time (STA) and uses a 15-minute threshold. Arrival results describe runway
-landing, not arrival at the gate.
+arrival time (STA) and uses the same 30-minute threshold. Arrival results describe
+runway landing, not arrival at the gate.
 
 Only the explicit source status `Cancelled` counts as a cancellation. `NO OPERA` is
 kept separate and removed from both rate denominators. Records without usable times

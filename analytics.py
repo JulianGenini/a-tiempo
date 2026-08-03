@@ -4,12 +4,29 @@ Developed with assistance from OpenAI Codex.
 """
 
 from datetime import datetime, timedelta
+import re
 
 
 VALID_PERIODS = {"90", "365", "all"}
 MAX_VALID_DELAY_SECONDS = 6 * 60 * 60
 DEPARTURE_ON_TIME_LIMIT_SECONDS = 30 * 60
-ARRIVAL_ON_TIME_LIMIT_SECONDS = 15 * 60
+ARRIVAL_ON_TIME_LIMIT_SECONDS = 30 * 60
+
+AIRCRAFT_MODEL_PREFIXES = (
+    "Airbus ",
+    "ATR ",
+    "BAe ",
+    "Beech ",
+    "Boeing ",
+    "Canadair ",
+    "Dash ",
+    "Embraer ",
+    "McDonnell ",
+    "Saab ",
+)
+AIRCRAFT_MODEL_PREFIX_PATTERN = re.compile(
+    "|".join(re.escape(prefix) for prefix in AIRCRAFT_MODEL_PREFIXES)
+)
 
 
 def normalize_period(period):
@@ -444,10 +461,9 @@ def aircraft_summary(rows, limit=4):
     identified = 0
 
     for row in rows:
-        model = row.get("aircraft_model")
-        if not model or not model.strip():
+        model = normalize_aircraft_model(row.get("aircraft_model"))
+        if not model:
             continue
-        model = model.strip()
         identified += 1
         counts[model] = counts.get(model, 0) + 1
 
@@ -469,6 +485,31 @@ def aircraft_summary(rows, limit=4):
         "missing": len(rows) - identified,
         "models": models,
     }
+
+
+def normalize_aircraft_model(model):
+    """Return a trustworthy aircraft model name or None for malformed values.
+
+    The source sometimes concatenates model names without a separator. Exact repeated
+    names can be safely collapsed; combinations of different models are discarded
+    because selecting one would misrepresent the source data.
+    """
+    if not model or not model.strip():
+        return None
+
+    model = model.strip()
+    starts = list(AIRCRAFT_MODEL_PREFIX_PATTERN.finditer(model))
+    if len(starts) < 2:
+        return model
+
+    parts = []
+    for index, match in enumerate(starts):
+        end = starts[index + 1].start() if index + 1 < len(starts) else len(model)
+        parts.append(model[match.start():end].strip())
+
+    if len(set(parts)) == 1:
+        return parts[0]
+    return None
 
 
 def build_report(rows):
