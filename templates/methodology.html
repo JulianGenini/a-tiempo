@@ -7,7 +7,7 @@
     <p class="eyebrow">What the numbers mean</p>
     <h1>How it works</h1>
     <p>
-        This page explains what A Tiempo? can measure, how each result is calculated
+        This page explains what <i>A Tiempo?</i> can measure, how each result is calculated
         and where the source data has limits. It draws on 417,278 airport observations
         recorded from {{ first_date }} through {{ last_date }}.
     </p>
@@ -21,14 +21,16 @@
             <p>
                 The source provides scheduled times and actual runway times. For a
                 departure, A Tiempo? compares takeoff time (ATD) with scheduled
-                departure time (STD). For an international route whose origin is
-                outside the observed Argentine airports, it compares landing time
-                (ATA) at the Argentine destination with scheduled arrival time (STA).
+                departure time (STD). For a route search, the application first uses
+                departures recorded at the requested origin. If no matching departure
+                is available, it uses the arrival recorded at the requested destination,
+                comparing landing time (ATA) with scheduled arrival time (STA). In most
+                cases, this fallback represents an international inbound service whose
+                departure was not observed in the Argentine-airport dataset.
             </p>
             <p>
-                The dump does not contain departure off-block time: all 269,377
-                departure records have an empty <strong>blockoff</strong> field. This means
-                the departure result is <strong>not the same metric an airline
+                The included database does not contain a departure off-block time. This
+                means the departure result is <strong>not the same metric an airline
                 calculates from AOBT and SOBT</strong>. Taxi-out time is part of the
                 difference shown here.
             </p>
@@ -67,6 +69,11 @@
                 <strong>NO OPERA</strong> is separate. It is not treated as cancelled,
                 within the applicable threshold or delayed, and is removed from both rate
                 denominators.
+            </p>
+            <p>
+                Other source statuses are not automatically excluded. When they have a
+                valid timing difference, they can contribute to timing metrics; this
+                includes, for example, <strong>DIVERTED</strong> records with valid data.
             </p>
         </section>
 
@@ -112,8 +119,11 @@
                 same daily rotation. A flight-number search therefore selects the
                 earliest scheduled event for each date and keeps the movement type
                 recorded most frequently. This supports departures from Argentina and
-                inbound arrivals whose foreign departure is outside the dataset. The
-                rule produces at most one observation per flight number and service date.
+                inbound arrivals, most often when the foreign departure is outside the
+                dataset. The rule produces at most one observation per flight number and
+                service date. It uses the complete stored history before the selected
+                date period is applied, so changing the period changes the sample but not
+                the event that the flight number represents.
             </p>
             <p>
                 When a flight number appears on more than one route, directions recorded
@@ -122,10 +132,11 @@
                 labels the sample as insufficient.
             </p>
             <p>
-                A route report prefers a departure at its origin. If none exists because
-                the route starts outside Argentina, it uses the arrival recorded at the
-                Argentine destination. Airline reports remain departure-based and use
-                every matching departure.
+                A route report first looks for a departure at its origin. If none is
+                recorded, it uses the arrival recorded at its destination. In most cases,
+                this represents an inbound international route because its foreign
+                departure is outside the dataset. Airline reports remain departure-based
+                and use every matching departure.
             </p>
         </section>
 
@@ -166,8 +177,10 @@
             <span class="method-number">08</span>
             <h2>Aircraft information</h2>
             <p>
-                When a model is present, reports list the aircraft most commonly
-                recorded in the selected historical observations. This is context,
+                Reports list the aircraft models most commonly recorded in the selected
+                historical observations. Repeated identical model names are normalized;
+                ambiguous values that join different models are omitted rather than
+                guessed. This is context,
                 not a confirmation of the aircraft assigned to a future flight:
                 airlines can change equipment at any time.
             </p>
@@ -179,8 +192,9 @@
             <p>
                 Historical records came from a Failbondi data dump dated July 29,
                 2026. The source does not guarantee completeness. The dataset includes
-                only flights observed at Argentine airports. Results use departures
-                when the origin is observed and arrivals for international inbound
+                only flights observed at Argentine airports. Route results first use a
+                departure at the requested origin and otherwise fall back to the arrival
+                at the requested destination, most commonly for international inbound
                 routes. They describe past records and use a conservative reconstruction
                 for flight-number searches; they are not a promise about future performance.
             </p>

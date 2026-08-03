@@ -56,11 +56,13 @@
 {% endif %}
 
 {% if results %}
-<section class="content-section section-card">
+<section class="content-section section-card comparison-results">
     <div class="section-heading">
         <div>
-            <p class="eyebrow">{{ start_date }} to {{ end_date }}</p>
             <h2>Comparison result</h2>
+            {% if not mixed_movements %}
+            <p>{{ results[0].report.movement_name }} · within {{ results[0].report.threshold_minutes }} minutes of schedule</p>
+            {% endif %}
         </div>
     </div>
 
@@ -77,20 +79,33 @@
             <thead>
                 <tr>
                     <th>Item</th>
-                    <th>Observed event</th>
-                    <th>Within threshold</th>
-                    <th>Median vs schedule</th>
+                    <th>On time</th>
+                    <th>Typical difference</th>
                     <th>Cancelled</th>
+                    <th>Flights analysed</th>
                 </tr>
             </thead>
             <tbody>
                 {% for result in results %}
                 <tr>
-                    <th class="mono">{{ result.title }}</th>
-                    <td>{{ result.report.movement_name }} · {{ result.report.threshold_minutes }} min</td>
-                    <td>{{ result.report.performance.on_time_rate }}% <small>({{ result.report.performance.usable }})</small></td>
-                    <td>{% if result.report.performance.median_delay is not none %}{{ result.report.performance.median_delay }} min{% else %}—{% endif %}</td>
-                    <td>{{ result.report.performance.cancellation_rate }}%</td>
+                    <th class="mono">
+                        {% if result.route %}
+                        {{ result.route[0] }} <span class="route-link-arrow" aria-hidden="true">→</span> {{ result.route[1] }}
+                        {% else %}
+                        {{ result.title }}
+                        {% endif %}
+                    </th>
+                    <td><strong>{{ result.report.performance.on_time_rate }}%</strong></td>
+                    <td>
+                        {% set median = result.report.performance.median_delay %}
+                        {% if median is none %}—
+                        {% elif median > 0 %}{{ median }} min late
+                        {% elif median < 0 %}{{ median|abs }} min early
+                        {% else %}On schedule
+                        {% endif %}
+                    </td>
+                    <td>{{ result.report.performance.cancellation_rate }}% <small>({{ result.report.performance.cancelled }})</small></td>
+                    <td>{{ "{:,}".format(result.report.performance.usable) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
