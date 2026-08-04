@@ -76,19 +76,21 @@ arrival time (STA) and uses the same 30-minute threshold. Arrival results descri
 runway landing, not arrival at the gate.
 
 Only the explicit source status `Cancelled` counts as a cancellation. `NO OPERA` is
-kept separate and removed from both rate denominators. Other statuses are not
-automatically excluded: a record, including a `DIVERTED` record, contributes to timing
-metrics when it has a valid timing difference. Records without usable times do not
-enter timing calculations, and absolute differences above six hours are excluded as
-likely source errors. Reports with fewer than ten usable observations receive an
-“Insufficient data” label. Placeholder airport values such as `--I`, `-AR` and `-BR`
-are not displayed as routes, although a record can still contribute to timing metrics
-when its times are valid. Aircraft reports normalize repeated identical model names and
-omit ambiguous values that join different models rather than guessing an assignment.
+kept separate and removed from both rate denominators. A `DIVERTED` record is not a
+cancellation, but it counts as an analysed flight outside the timing threshold because
+the scheduled movement was not completed as planned. Other records need a valid event
+time. Long positive delays remain in the analysis, while differences earlier than six
+hours are excluded as likely source-date mismatches. The typical difference shown to
+users is the median, which limits the effect of isolated extreme values. Reports with
+fewer than ten analysed observations receive an “Insufficient data” label. Placeholder
+airport values such as `--I`, `-AR` and `-BR` are not displayed as routes, although a
+record can still contribute to timing metrics when its times are valid.
 
 ## Data source and limitations
 
-The prepared database came from a Failbondi dump. The original raw dump and the
+The prepared database came from the public Failbondi dump at
+`https://failbondi.fail/api/dump`; Failbondi's source code is available at
+`https://github.com/catdevnull/flybondi.fail`. The original raw dump and the
 importer used during database preparation are not included in this repository, so the
 data-preparation step cannot be reproduced from the submitted files alone. The
 included schema documents the final structure, while the database provides the fixed

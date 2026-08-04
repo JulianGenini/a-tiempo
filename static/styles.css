@@ -1148,7 +1148,7 @@ input::placeholder {
 
 .metric-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     margin: 0;
     border-top: 1px solid var(--border);
     border-left: 1px solid var(--border);
@@ -1433,6 +1433,10 @@ input::placeholder {
 }
 
 @media (max-width: 760px) {
+    .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .site-navbar .navbar-nav {
         gap: 0.2rem;
         margin-top: 0.6rem;

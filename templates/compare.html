@@ -95,7 +95,7 @@
                         {{ result.title }}
                         {% endif %}
                     </th>
-                    <td><strong>{{ result.report.performance.on_time_rate }}%</strong></td>
+                    <td><strong>{{ result.report.performance.on_time_rate_display }}</strong></td>
                     <td>
                         {% set median = result.report.performance.median_delay %}
                         {% if median is none %}—
@@ -104,7 +104,7 @@
                         {% else %}On schedule
                         {% endif %}
                     </td>
-                    <td>{{ result.report.performance.cancellation_rate }}% <small>({{ result.report.performance.cancelled }})</small></td>
+                    <td>{{ result.report.performance.cancellation_rate_display }} <small>({{ result.report.performance.cancelled }})</small></td>
                     <td>{{ "{:,}".format(result.report.performance.usable) }}</td>
                 </tr>
                 {% endfor %}

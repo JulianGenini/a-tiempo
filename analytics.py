@@ -8,7 +8,7 @@ import re
 
 
 VALID_PERIODS = {"90", "365", "all"}
-MAX_VALID_DELAY_SECONDS = 6 * 60 * 60
+MAX_VALID_EARLY_SECONDS = 6 * 60 * 60
 DEPARTURE_ON_TIME_LIMIT_SECONDS = 30 * 60
 ARRIVAL_ON_TIME_LIMIT_SECONDS = 30 * 60
 
@@ -318,6 +318,13 @@ def median(values):
     return (ordered[middle - 1] + ordered[middle]) / 2
 
 
+def format_percentage(value):
+    """Format a rate without rounding a positive value down to zero."""
+    if 0 < value < 0.1:
+        return "<0.1%"
+    return f"{value:.1f}%"
+
+
 def performance_label(on_time_rate, usable_observations, threshold_minutes):
     if usable_observations < 10:
         return "Insufficient data", "neutral"
@@ -332,13 +339,14 @@ def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECOND
     """Calculate all report metrics with explicit, explainable rules."""
     scheduled = 0
     cancelled = 0
+    diverted = 0
     not_operating = 0
     excluded_outliers = 0
     on_time = 0
     delays = []
 
     for row in rows:
-        status = row.get("status_en")
+        status = (row.get("status_en") or "").upper()
 
         if status == "NO OPERA":
             not_operating += 1
@@ -346,15 +354,25 @@ def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECOND
 
         scheduled += 1
 
-        if status == "Cancelled":
+        if status == "CANCELLED":
             cancelled += 1
+            continue
+
+        # A diversion did not complete the scheduled movement as planned. It is
+        # assessed as outside the timing threshold even when the source happens to
+        # provide an event time, but that time is not used as a route delay.
+        if status == "DIVERTED":
+            diverted += 1
             continue
 
         delay = row.get("delay_seconds")
         if delay is None:
             continue
 
-        if abs(delay) > MAX_VALID_DELAY_SECONDS:
+        # Long positive delays can be genuine and remain in the result. Very large
+        # negative values are normally a stale or mismatched date in the source, not
+        # a flight that operated many hours early.
+        if delay < -MAX_VALID_EARLY_SECONDS:
             excluded_outliers += 1
             continue
 
@@ -362,14 +380,16 @@ def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECOND
         if delay <= on_time_limit_seconds:
             on_time += 1
 
-    usable = len(delays)
+    usable = len(delays) + diverted
     on_time_rate = 0
     if usable:
         on_time_rate = on_time * 100 / usable
 
     cancellation_rate = 0
+    diversion_rate = 0
     if scheduled:
         cancellation_rate = cancelled * 100 / scheduled
+        diversion_rate = diverted * 100 / scheduled
 
     average_delay = None
     median_delay = None
@@ -385,11 +405,16 @@ def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECOND
         "scheduled": scheduled,
         "usable": usable,
         "cancelled": cancelled,
+        "diverted": diverted,
         "not_operating": not_operating,
         "excluded_outliers": excluded_outliers,
         "on_time": on_time,
         "on_time_rate": round(on_time_rate, 1),
+        "on_time_rate_display": format_percentage(on_time_rate),
         "cancellation_rate": round(cancellation_rate, 1),
+        "cancellation_rate_display": format_percentage(cancellation_rate),
+        "diversion_rate": round(diversion_rate, 1),
+        "diversion_rate_display": format_percentage(diversion_rate),
         "average_delay": round(average_delay, 1)
         if average_delay is not None
         else None,

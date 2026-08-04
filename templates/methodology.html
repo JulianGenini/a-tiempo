@@ -17,136 +17,77 @@
     <article class="prose">
         <section class="method-card">
             <span class="method-number">01</span>
-            <h2>What can this project measure?</h2>
+            <h2>What is being measured?</h2>
             <p>
-                The source provides scheduled times and actual runway times. For a
-                departure, A Tiempo? compares takeoff time (ATD) with scheduled
-                departure time (STD). For a route search, the application first uses
-                departures recorded at the requested origin. If no matching departure
-                is available, it uses the arrival recorded at the requested destination,
-                comparing landing time (ATA) with scheduled arrival time (STA). In most
-                cases, this fallback represents an international inbound service whose
-                departure was not observed in the Argentine-airport dataset.
+                For departures, <i>A Tiempo?</i> compares the actual takeoff time (ATD)
+                with the scheduled departure time (STD). Because the source does not
+                include the time an aircraft leaves the gate, this difference also
+                includes taxi-out time. It is therefore not the same as an airline's
+                off-block punctuality metric (AOBT compared with SOBT).
             </p>
             <p>
-                The included database does not contain a departure off-block time. This
-                means the departure result is <strong>not the same metric an airline
-                calculates from AOBT and SOBT</strong>. Taxi-out time is part of the
-                difference shown here.
-            </p>
-            <p>
-                The application does not subtract an estimated taxi time because that
-                would create a number the source cannot support.
-            </p>
-            <p>
-                Arrival results use landing rather than arrival at the gate, so they
-                are also a runway-based measure and not the airline's in-block metric.
+                When a route's departure is outside the Argentine airport dataset, the
+                report can use its arrival instead. In that case it compares landing
+                time (ATA) with scheduled arrival time (STA). This measures landing on
+                the runway, not arrival at the gate.
             </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">02</span>
-            <h2>What are the timing thresholds?</h2>
+            <h2>What counts as near schedule?</h2>
             <p>
-                A departure is within the displayed threshold when it takes off no more
-                than <strong>30 minutes</strong> after STD. The wider threshold accounts
-                for the fact that ATD includes normal taxi-out time; it is a transparent
-                project rule, not the airline industry's D15 measure.
-            </p>
-            <p>
-                An inbound arrival is within the threshold when it lands no more than
-                <strong>30 minutes</strong> after STA. Using the same threshold for both
-                events keeps results easy to interpret and compare. An early takeoff or
-                landing has a negative difference and also counts.
+                A flight is within the project threshold when it takes off or lands no
+                more than <strong>30 minutes after its scheduled time</strong>. An early
+                event also counts. The same threshold is used for departures and
+                arrivals so results remain easy to compare. This is a project rule, not
+                the airline industry's D15 standard.
             </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">03</span>
-            <h2>Cancellation and NO OPERA</h2>
+            <h2>What about cancellations and diversions?</h2>
             <p>
-                Only the source status <strong>Cancelled</strong> counts as a cancellation.
-                <strong>NO OPERA</strong> is separate. It is not treated as cancelled,
-                within the applicable threshold or delayed, and is removed from both rate
-                denominators.
+                Only records marked <strong>Cancelled</strong> by the source count as
+                cancellations. They have their own rate and do not enter the schedule
+                performance calculation.
             </p>
             <p>
-                Other source statuses are not automatically excluded. When they have a
-                valid timing difference, they can contribute to timing metrics; this
-                includes, for example, <strong>DIVERTED</strong> records with valid data.
+                A <strong>DIVERTED</strong> flight is not a cancellation, but it did not
+                complete the scheduled movement as planned. It therefore counts as an
+                analysed flight outside the 30-minute threshold, regardless of any time
+                attached to that status. Diversions are also shown separately in the
+                report.
+            </p>
+            <p>
+                <strong>NO OPERA</strong> records are excluded from both calculations.
+                Other statuses need an actual event time to be analysed.
             </p>
         </section>
 
         <section class="method-card">
             <span class="method-number">04</span>
-            <h2>Invalid and extreme values</h2>
-            <p>
-                Records without both times cannot contribute to the timing result.
-                Differences whose absolute value exceeds six hours are excluded
-                because they are likely date-parsing or source-data errors.
-            </p>
-            <p>
-                Placeholder airport values such as <strong>--I</strong>, <strong>-AR</strong>
-                or <strong>-BR</strong> are not valid IATA codes. Their observations can
-                still contribute to timing metrics when the times are valid, but the
-                placeholders are excluded from route coverage and identified in the
-                report.
-            </p>
-        </section>
-
-        <section class="method-card">
-            <span class="method-number">05</span>
             <h2>How are the rates calculated?</h2>
             <div class="formula">
                 <span>Within-threshold rate</span>
-                <strong>flights within the event threshold ÷ all usable flights × 100</strong>
+                <strong>flights within 30 minutes ÷ analysed flights × 100</strong>
             </div>
             <div class="formula">
                 <span>Cancellation rate</span>
                 <strong>cancelled observations ÷ scheduled observations × 100</strong>
             </div>
             <p>
-                “Scheduled observations” excludes NO OPERA. “Usable observations”
-                also excludes cancellations, missing times and extreme values.
-            </p>
-        </section>
-
-        <section class="method-card">
-            <span class="method-number">06</span>
-            <h2>How is a flight number reconstructed?</h2>
-            <p>
-                Some source rows repeat one flight number across later events in the
-                same daily rotation. A flight-number search therefore selects the
-                earliest scheduled event for each date and keeps the movement type
-                recorded most frequently. This supports departures from Argentina and
-                inbound arrivals, most often when the foreign departure is outside the
-                dataset. The rule produces at most one observation per flight number and
-                service date. It uses the complete stored history before the selected
-                date period is applied, so changing the period changes the sample but not
-                the event that the flight number represents.
+                Analysed flights have either a valid event time or a DIVERTED status.
+                Cancellations and NO OPERA records are not part of this denominator.
+                Records that appear to operate more than six hours early are excluded as likely date
+                mismatches in the source.
             </p>
             <p>
-                When a flight number appears on more than one route, directions recorded
-                on only one date are excluded as isolated source anomalies. If the database
-                contains only one observation for a flight, it is preserved and the report
-                labels the sample as insufficient.
-            </p>
-            <p>
-                A route report first looks for a departure at its origin. If none is
-                recorded, it uses the arrival recorded at its destination. In most cases,
-                this represents an inbound international route because its foreign
-                departure is outside the dataset. Airline reports remain departure-based
-                and use every matching departure.
-            </p>
-        </section>
-
-        <section class="method-card">
-            <span class="method-number">07</span>
-            <h2>How are the performance labels assigned?</h2>
-            <p>
-                The label is based on the percentage of usable observations that were
-                within the 30-minute timing threshold. The scale is the same for
-                departures and arrivals.
+                The typical difference shown in reports is the <strong>median</strong>
+                of valid time differences, so an isolated extreme value does not dominate
+                the result. Diversions do not enter this median because they did not
+                complete the scheduled movement normally.
             </p>
             <dl class="performance-scale">
                 <div class="performance-scale-item">
@@ -163,40 +104,38 @@
                 </div>
                 <div class="performance-scale-item">
                     <dt><span class="status-pill neutral">Insufficient data</span></dt>
-                    <dd>Fewer than <strong>10 usable observations</strong>; no performance label is treated as reliable.</dd>
+                    <dd>Fewer than <strong>10 analysed flights</strong>; no performance label is treated as reliable.</dd>
                 </div>
             </dl>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">05</span>
+            <h2>What does the aircraft information mean?</h2>
             <p>
-                Early takeoffs or landings count as within the threshold. For example,
-                a departure marked “Usually near schedule” has at least 80% of its usable
-                observations taking off no more than 30 minutes after STD.
+                The aircraft models are the ones most often recorded in the selected
+                historical period. They provide context only: an airline can change the
+                aircraft assigned to a future flight at any time.
             </p>
         </section>
 
         <section class="method-card">
-            <span class="method-number">08</span>
-            <h2>Aircraft information</h2>
-            <p>
-                Reports list the aircraft models most commonly recorded in the selected
-                historical observations. Repeated identical model names are normalized;
-                ambiguous values that join different models are omitted rather than
-                guessed. This is context,
-                not a confirmation of the aircraft assigned to a future flight:
-                airlines can change equipment at any time.
-            </p>
-        </section>
-
-        <section class="method-card">
-            <span class="method-number">09</span>
+            <span class="method-number">06</span>
             <h2>Source and limitations</h2>
             <p>
-                Historical records came from a Failbondi data dump dated July 29,
-                2026. The source does not guarantee completeness. The dataset includes
-                only flights observed at Argentine airports. Route results first use a
-                departure at the requested origin and otherwise fall back to the arrival
-                at the requested destination, most commonly for international inbound
-                routes. They describe past records and use a conservative reconstruction
-                for flight-number searches; they are not a promise about future performance.
+                The historical records come from a
+                <a href="https://failbondi.fail/api/dump" target="_blank" rel="noopener noreferrer">Failbondi data dump</a>
+                downloaded on July 29, 2026. Failbondi publishes its
+                <a href="https://github.com/catdevnull/flybondi.fail" target="_blank" rel="noopener noreferrer">source code on GitHub</a>
+                and obtains flight-status data from Aeropuertos Argentina.
+            </p>
+            <p>
+                The source does not guarantee complete or error-free coverage. It only
+                includes flights observed at Argentine airports, which is why some
+                international routes are measured from their arrival. Invalid airport
+                codes are omitted from route lists. Results describe the available past
+                observations; they do not predict a future flight or guarantee its
+                performance.
             </p>
         </section>
     </article>
