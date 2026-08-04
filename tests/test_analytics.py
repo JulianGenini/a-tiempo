@@ -11,6 +11,7 @@ from analytics import (
     calculate_metrics,
     display_flight_number,
     dominant_movement,
+    format_percentage,
     first_observation_each_day,
     get_flight_observations,
     median,
@@ -50,6 +51,11 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(median([4, 1, 2, 3]), 2.5)
         self.assertIsNone(median([]))
 
+    def test_formats_positive_tiny_percentages_without_showing_zero(self):
+        self.assertEqual(format_percentage(0), "0.0%")
+        self.assertEqual(format_percentage(0.02), "<0.1%")
+        self.assertEqual(format_percentage(0.1), "0.1%")
+
     def test_calculates_status_and_delay_rules(self):
         rows = [
             {"status_en": "Took off", "delay_seconds": 0},
@@ -58,20 +64,25 @@ class AnalyticsTests(unittest.TestCase):
             {"status_en": "Cancelled", "delay_seconds": None},
             {"status_en": "NO OPERA", "delay_seconds": None},
             {"status_en": "Took off", "delay_seconds": 7 * 60 * 60},
+            {"status_en": "Took off", "delay_seconds": -7 * 60 * 60},
+            {"status_en": "DIVERTED", "delay_seconds": None},
+            {"status_en": "Diverted", "delay_seconds": 0},
             {"status_en": "Took off", "delay_seconds": None},
         ]
 
         metrics = calculate_metrics(rows)
 
-        self.assertEqual(metrics["observations"], 7)
-        self.assertEqual(metrics["scheduled"], 6)
+        self.assertEqual(metrics["observations"], 10)
+        self.assertEqual(metrics["scheduled"], 9)
         self.assertEqual(metrics["cancelled"], 1)
+        self.assertEqual(metrics["diverted"], 2)
         self.assertEqual(metrics["not_operating"], 1)
         self.assertEqual(metrics["excluded_outliers"], 1)
-        self.assertEqual(metrics["usable"], 3)
+        self.assertEqual(metrics["usable"], 6)
         self.assertEqual(metrics["on_time"], 2)
-        self.assertEqual(metrics["on_time_rate"], 66.7)
-        self.assertEqual(metrics["cancellation_rate"], 16.7)
+        self.assertEqual(metrics["on_time_rate"], 33.3)
+        self.assertEqual(metrics["cancellation_rate"], 11.1)
+        self.assertEqual(metrics["diversion_rate"], 22.2)
         self.assertEqual(metrics["median_delay"], 30.0)
 
     def test_assigns_performance_labels(self):

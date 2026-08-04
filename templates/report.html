@@ -25,7 +25,7 @@
     <p class="empty-state">No {{ report.movement_name.lower() }} were recorded for this search.</p>
     {% else %}
     <div class="primary-metric">
-        <strong>{{ metrics.on_time_rate }}%</strong>
+        <strong>{{ metrics.on_time_rate_display }}</strong>
         <span>{{ report.event_verb }} within {{ report.threshold_minutes }} minutes of schedule</span>
     </div>
 
@@ -36,18 +36,20 @@
         </div>
         <div>
             <dt>Cancelled</dt>
-            <dd>{% if metrics.cancelled == 0 %}None recorded{% else %}{{ metrics.cancelled }} ({{ metrics.cancellation_rate }}%){% endif %}</dd>
+            <dd>{% if metrics.cancelled == 0 %}None recorded{% else %}{{ metrics.cancelled }} ({{ metrics.cancellation_rate_display }}){% endif %}</dd>
         </div>
         <div>
-            <dt>Average {{ report.movement_name[:-1]|lower }}</dt>
-            <dd>{% if metrics.average_delay is none %}—{% elif metrics.average_delay > 0 %}{{ metrics.average_delay }} min late{% elif metrics.average_delay < 0 %}{{ -metrics.average_delay }} min early{% else %}On schedule{% endif %}</dd>
+            <dt>Diverted</dt>
+            <dd>{% if metrics.diverted == 0 %}None recorded{% else %}{{ metrics.diverted }} ({{ metrics.diversion_rate_display }}){% endif %}</dd>
+        </div>
+        <div>
+            <dt>Typical {{ report.movement_name[:-1]|lower }}</dt>
+            <dd>{% if metrics.median_delay is none %}—{% elif metrics.median_delay > 0 %}{{ metrics.median_delay }} min late{% elif metrics.median_delay < 0 %}{{ -metrics.median_delay }} min early{% else %}On schedule{% endif %}</dd>
         </div>
     </dl>
 
     <p class="calculation-note">
-        Based on flights with valid timing data{% if metrics.excluded_outliers %};
-        {{ metrics.excluded_outliers }} invalid time difference{% if metrics.excluded_outliers != 1 %}s{% endif %}
-        excluded{% endif %}.
+        Based on flights with valid timing data and diversions.
         <a href="{{ url_for('methodology') }}">Read Methodology</a>
     </p>
     {% endif %}

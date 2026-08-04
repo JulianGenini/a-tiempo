@@ -102,10 +102,11 @@ class AppTests(unittest.TestCase):
     def test_methodology_explains_off_block_limitation(self):
         response = self.client.get("/methodology")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"269,377", response.data)
-        self.assertIn(b"departure records", response.data)
+        self.assertIn(b"417,278", response.data)
+        self.assertIn(b"airport observations", response.data)
         self.assertIn(b"AOBT", response.data)
-        self.assertIn(b"earliest scheduled event", response.data)
+        self.assertIn(b"DIVERTED", response.data)
+        self.assertIn(b"https://failbondi.fail/api/dump", response.data)
 
     def test_comparison(self):
         response = self.client.get(
