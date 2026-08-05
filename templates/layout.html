@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}">
     <!-- Templates developed with assistance from OpenAI Codex. -->
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta
             name="description"
-            content="Explore historical flight performance observed at Argentine airports."
+            content="{{ t('meta_description') }}"
         >
         <title>{% block title %}A Tiempo?{% endblock %}</title>
         <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
@@ -16,15 +16,15 @@
         <script src="{{ url_for('static', filename='script.js') }}" defer></script>
     </head>
     <body>
-        <a class="skip-link" href="#main-content">Skip to content</a>
+        <a class="skip-link" href="#main-content">{{ t('skip_content') }}</a>
 
-        <nav class="navbar navbar-expand-md site-navbar" data-bs-theme="dark" aria-label="Main navigation">
+        <nav class="navbar navbar-expand-md site-navbar" data-bs-theme="dark" aria-label="{{ t('main_navigation') }}">
             <div class="container-fluid site-navbar-inner">
-                <a class="navbar-brand brand" href="{{ url_for('home') }}" aria-label="A Tiempo? home">
+                <a class="navbar-brand brand" href="{{ lurl('home') }}" aria-label="{{ t('brand_home') }}">
                     <span class="brand-mark" aria-hidden="true">✈</span>
                     <span class="brand-copy">
                         <span>A tiempo?</span>
-                        <small>Flight history explorer</small>
+                        <small>{{ t('brand_tagline') }}</small>
                     </span>
                 </a>
                 <button
@@ -34,7 +34,7 @@
                     data-bs-target="#main-navigation"
                     aria-controls="main-navigation"
                     aria-expanded="false"
-                    aria-label="Open navigation"
+                    aria-label="{{ t('open_navigation') }}"
                 >
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -44,32 +44,49 @@
                             <a
                                 class="nav-link {% if request.endpoint in ['home', 'flight_report', 'route_report', 'airline_report'] %}active{% endif %}"
                                 {% if request.endpoint in ['home', 'flight_report', 'route_report', 'airline_report'] %}aria-current="page"{% endif %}
-                                href="{{ url_for('home') }}"
-                            >Home</a>
+                                href="{{ lurl('home') }}"
+                            >{{ t('home_nav') }}</a>
                         </li>
                         <li class="nav-item">
                             <a
                                 class="nav-link {% if request.endpoint == 'compare' %}active{% endif %}"
                                 {% if request.endpoint == 'compare' %}aria-current="page"{% endif %}
-                                href="{{ url_for('compare') }}"
-                            >Compare</a>
+                                href="{{ lurl('compare') }}"
+                            >{{ t('compare_nav') }}</a>
                         </li>
                         <li class="nav-item">
                             <a
                                 class="nav-link {% if request.endpoint == 'methodology' %}active{% endif %}"
                                 {% if request.endpoint == 'methodology' %}aria-current="page"{% endif %}
-                                href="{{ url_for('methodology') }}"
-                            >How it works</a>
+                                href="{{ lurl('methodology') }}"
+                            >{{ t('methodology_nav') }}</a>
                         </li>
                     </ul>
+                    <div class="language-switcher" role="group" aria-label="{{ t('language_selector') }}">
+                        <a
+                            class="language-link {% if lang == 'en' %}active{% endif %}"
+                            href="{{ language_url('en') }}"
+                            lang="en"
+                            hreflang="en"
+                            {% if lang == 'en' %}aria-current="true"{% endif %}
+                        >EN</a>
+                        <span aria-hidden="true">/</span>
+                        <a
+                            class="language-link {% if lang == 'es' %}active{% endif %}"
+                            href="{{ language_url('es') }}"
+                            lang="es"
+                            hreflang="es"
+                            {% if lang == 'es' %}aria-current="true"{% endif %}
+                        >ES</a>
+                    </div>
                 </div>
             </div>
         </nav>
 
         <aside class="dataset-notice">
             <span class="notice-icon" aria-hidden="true">✈</span>
-            <strong>Argentina-only historical dataset:</strong>
-            services observed at Argentine airports, from December 23, 2024 through July 29, 2026.
+            <strong>{{ t('dataset_title') }}</strong>
+            {{ t('dataset_text') }}
         </aside>
 
         <main id="main-content">
@@ -80,12 +97,12 @@
             <div class="site-footer-main">
                 <div>
                     <strong><span aria-hidden="true">✈</span> A Tiempo?</strong>
-                    <p>A CS50x final project that turns airport records into simple flight-history reports.</p>
+                    <p>{{ t('footer_description') }}</p>
                 </div>
-                <p class="travel-notice">For current travel information, always check with the airline or airport.</p>
+                <p class="travel-notice">{{ t('footer_notice') }}</p>
             </div>
             <p class="site-credit">
-                Created by Julian Genini ·
+                {{ t('footer_credit') }} ·
                 <a href="https://www.linkedin.com/in/jgenini/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             </p>
         </footer>

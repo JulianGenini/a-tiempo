@@ -1,0 +1,142 @@
+<section class="page-intro methodology-intro">
+    <p class="eyebrow">What the numbers mean</p>
+    <h1>How it works</h1>
+    <p>
+        This page explains what <i>A Tiempo?</i> can measure, how each result is calculated
+        and where the source data has limits. It draws on 417,278 airport observations
+        recorded from {{ first_date }} through {{ last_date }}.
+    </p>
+</section>
+
+<section class="article-layout methodology-layout">
+    <article class="prose">
+        <section class="method-card">
+            <span class="method-number">01</span>
+            <h2>What is being measured?</h2>
+            <p>
+                For departures, <i>A Tiempo?</i> compares the actual takeoff time (ATD)
+                with the scheduled departure time (STD). Because the database only
+                reports the takeoff and landing times observed by the airport, not the
+                off-block time used by airlines to assess flight performance, the
+                comparisons must be made using the observed takeoff and landing times
+                available in the source. As a result, the difference between ATD and
+                STD for departures may include taxi-out time and is not an airline
+                punctuality metric based on AOBT and SOBT.
+            </p>
+            <p>
+                When no departure is recorded at the origin airport, the report can use
+                the arrival recorded at the destination airport instead. This occurs,
+                for example, with inbound routes whose origin airport is outside the
+                Argentine airport dataset. In that case, it compares landing time (ATA)
+                with scheduled arrival time (STA). The measurement reflects landing on
+                the destination airport's runway, not the moment the flight reaches the
+                gate.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">02</span>
+            <h2>When is a flight considered on time?</h2>
+            <p>
+                A flight is considered on time when it takes off or lands no more than
+                <strong>30 minutes after its scheduled time</strong>. The same threshold
+                is used for departures and arrivals so results remain easy to compare.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">03</span>
+            <h2>What about cancellations and diversions?</h2>
+            <p>
+                Records marked as <strong>cancelled</strong> by the source count as
+                cancellations. They have their own rate and do not enter the punctuality
+                calculation.
+            </p>
+            <p>
+                A <strong>diverted</strong> flight is not a cancellation, but it did not
+                complete the scheduled movement as planned. It therefore counts as an
+                analysed flight outside the 30-minute threshold. Diversions are also
+                shown separately in the report.
+            </p>
+            <p>
+                <strong>No opera</strong> records are excluded from both calculations.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">04</span>
+            <h2>How are the rates calculated?</h2>
+            <div class="formula">
+                <span>Within-threshold rate</span>
+                <strong>flights within 30 minutes ÷ analysed flights × 100</strong>
+            </div>
+            <div class="formula">
+                <span>Cancellation rate</span>
+                <strong>cancelled observations ÷ scheduled observations (excluding no opera) × 100</strong>
+            </div>
+            <p>
+                To calculate punctuality, the analysis uses flights with a recorded actual
+                time. Diversions are also included among the analysed flights, but
+                count as being outside the 30-minute threshold. Cancellations and no opera
+                records are not part of this calculation. Records without a valid event
+                time are also excluded, as are cases that appear to be more than six hours
+                early because they may reflect a date error in the source.
+            </p>
+            <p>
+                When a report shows a typical difference, it refers to the
+                <strong>median</strong> difference between the observed and scheduled
+                times: the middle value when all results are ordered. This keeps one
+                exceptional case from distorting the result. Diversions are not included
+                because they did not complete the scheduled movement normally.
+            </p>
+            <dl class="performance-scale">
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill good">Usually near schedule</span></dt>
+                    <dd><strong>80% to 100%</strong> within the threshold.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill warning">Mixed schedule performance</span></dt>
+                    <dd><strong>65% to 79.9%</strong> within the threshold.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill bad">Often more than 30 minutes late</span></dt>
+                    <dd><strong>Below 65%</strong> within the threshold.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill neutral">Insufficient data</span></dt>
+                    <dd>Fewer than <strong>10 analysed flights</strong>; no performance label is treated as reliable.</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">05</span>
+            <h2>What does the aircraft information mean?</h2>
+            <p>
+                The aircraft models are the ones most often recorded in the selected
+                historical period. They provide context only: an airline can change the
+                aircraft assigned to a future flight at any time.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">06</span>
+            <h2>Source and limitations</h2>
+            <p>
+                The historical records come from a
+                <a href="https://failbondi.fail/api/dump" target="_blank" rel="noopener noreferrer">Failbondi data dump</a>
+                downloaded on July 29, 2026. Failbondi publishes its
+                <a href="https://github.com/catdevnull/flybondi.fail" target="_blank" rel="noopener noreferrer">source code on GitHub</a>
+                and obtains flight-status data from Aeropuertos Argentina.
+            </p>
+            <p>
+                The source does not guarantee complete or error-free coverage. It only
+                includes flights observed at Argentine airports, which is why some
+                international routes are measured from their arrival. Invalid airport
+                codes are omitted from route lists. Results describe the available past
+                observations; they do not predict a future flight or guarantee its
+                performance.
+            </p>
+        </section>
+    </article>
+</section>

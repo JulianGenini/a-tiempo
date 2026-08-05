@@ -4,9 +4,10 @@ Developed with assistance from OpenAI Codex.
 """
 
 from pathlib import Path
+from urllib.parse import urlencode
 
 from cs50 import SQL
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 
 from analytics import (
     build_report,
@@ -18,9 +19,15 @@ from analytics import (
     get_overview,
     get_route_observations,
     get_start_date,
-    format_date,
     normalize_flight_number,
     normalize_period,
+)
+from localization import (
+    format_date,
+    format_number,
+    format_numeric_text,
+    normalize_language,
+    translate,
 )
 app = Flask(__name__)
 
@@ -29,7 +36,41 @@ DATABASE_PATH = PROJECT_DIRECTORY / "database" / "flights.db"
 db = SQL("sqlite:///" + str(DATABASE_PATH))
 
 
-def render_error(message, status=400):
+def current_language():
+    return normalize_language(request.args.get("lang", "en"))
+
+
+def localized_url_for(endpoint, **values):
+    if current_language() == "es":
+        values.setdefault("lang", "es")
+    return url_for(endpoint, **values)
+
+
+def language_url(language):
+    values = request.args.to_dict(flat=True)
+    if normalize_language(language) == "es":
+        values["lang"] = "es"
+    else:
+        values.pop("lang", None)
+    query = urlencode(values)
+    return request.path + ("?" + query if query else "")
+
+
+@app.context_processor
+def inject_localization():
+    language = current_language()
+    return {
+        "lang": language,
+        "t": lambda key, **values: translate(key, language, **values),
+        "lurl": localized_url_for,
+        "language_url": language_url,
+        "number": lambda value: format_number(value, language),
+        "numeric": lambda value: format_numeric_text(value, language),
+    }
+
+
+def render_error(message_key, status=400):
+    message = translate(message_key, current_language())
     return render_template("error.html", message=message), status
 
 
@@ -54,23 +95,23 @@ def flight_report():
     compact = normalize_flight_number(number)
 
     if not compact:
-        return render_error("Enter a flight number, such as AR1400.")
+        return render_error("error_enter_flight")
 
     start_date, end_date = get_start_date(db, period)
     rows = get_flight_observations(db, compact, start_date)
     if not rows:
-        return render_error("No historical observations match that flight.", 404)
+        return render_error("error_no_flight", 404)
 
     context = report_context(rows, period)
     if context["report"]["movement"] == "A":
-        description = "See how reliably this inbound service landed compared with its scheduled arrival time."
+        description_key = "flight_arrival_description"
     else:
-        description = "See how often this service departed close to its scheduled time."
+        description_key = "flight_departure_description"
     context.update(
         {
             "title": display_flight_number(compact),
-            "eyebrow": "Flight history",
-            "description": description,
+            "eyebrow": translate("flight_history", current_language()),
+            "description": translate(description_key, current_language()),
             "form_action": "flight_report",
             "hidden_fields": {"number": display_flight_number(compact)},
         }
@@ -85,25 +126,25 @@ def route_report():
     period = normalize_period(request.args.get("period", "365"))
 
     if not valid_iata(origin) or not valid_iata(destination):
-        return render_error("Origin and destination must be three-letter IATA codes.")
+        return render_error("error_iata")
     if origin == destination:
-        return render_error("Origin and destination must be different.")
+        return render_error("error_same_airport")
 
     start_date, end_date = get_start_date(db, period)
     rows = get_route_observations(db, origin, destination, start_date)
     if not rows:
-        return render_error("No historical observations match that route.", 404)
+        return render_error("error_no_route", 404)
 
     context = report_context(rows, period)
     if context["report"]["movement"] == "A":
-        description = "See arrival performance for this international inbound route."
+        description_key = "route_arrival_description"
     else:
-        description = "See departure performance for flights from this origin to this destination."
+        description_key = "route_departure_description"
     context.update(
         {
             "title": origin + " → " + destination,
-            "eyebrow": "Route history",
-            "description": description,
+            "eyebrow": translate("route_history", current_language()),
+            "description": translate(description_key, current_language()),
             "form_action": "route_report",
             "hidden_fields": {
                 "origin": origin,
@@ -120,12 +161,12 @@ def airline_report():
     period = normalize_period(request.args.get("period", "365"))
 
     if not code or len(code) > 3:
-        return render_error("Enter a valid airline IATA code.")
+        return render_error("error_airline")
 
     start_date, end_date = get_start_date(db, period)
     rows = get_airline_observations(db, code, start_date)
     if not rows:
-        return render_error("No historical observations match that airline.", 404)
+        return render_error("error_no_airline", 404)
 
     airline_name = code
     for airline in get_airlines(db):
@@ -137,8 +178,8 @@ def airline_report():
     context.update(
         {
             "title": code + " · " + airline_name.title(),
-            "eyebrow": "Airline history",
-            "description": "See departure performance across this airline's flights recorded in the database.",
+            "eyebrow": translate("airline_history", current_language()),
+            "description": translate("airline_description", current_language()),
             "form_action": "airline_report",
             "hidden_fields": {"code": code},
         }
@@ -205,12 +246,12 @@ def compare():
 
     if items:
         if len(items) < 2:
-            error = "Enter at least two items to compare."
+            error = translate("error_compare_minimum", current_language())
         else:
             for item in items:
                 result = comparison_result(kind, item, start_date)
                 if result is None:
-                    error = "One or more comparison items are invalid or have no data."
+                    error = translate("error_compare_invalid", current_language())
                     results = []
                     break
                 results.append(result)
@@ -254,14 +295,14 @@ def methodology():
     first_date, last_date = get_start_date(db, "all")
     return render_template(
         "methodology.html",
-        first_date=format_date(first_date),
-        last_date=format_date(last_date),
+        first_date=format_date(first_date, current_language()),
+        last_date=format_date(last_date, current_language()),
     )
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return render_error("The requested page does not exist.", 404)
+    return render_error("error_not_found", 404)
 
 
 if __name__ == "__main__":

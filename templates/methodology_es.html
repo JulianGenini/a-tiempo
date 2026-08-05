@@ -1,0 +1,148 @@
+<section class="page-intro methodology-intro">
+    <p class="eyebrow">Qué significan los números</p>
+    <h1>Cómo funciona</h1>
+    <p>
+        Esta página explica qué puede medir <i>A Tiempo?</i>, cómo se calcula cada
+        resultado y cuáles son los límites de los datos de origen. El análisis utiliza
+        417.278 observaciones aeroportuarias registradas desde el {{ first_date }} hasta
+        el {{ last_date }}.
+    </p>
+</section>
+
+<section class="article-layout methodology-layout">
+    <article class="prose">
+        <section class="method-card">
+            <span class="method-number">01</span>
+            <h2>¿Qué se está midiendo?</h2>
+            <p>
+                Para las partidas, <i>A Tiempo?</i> compara la hora real de despegue (ATD)
+                con la hora programada de partida (STD). Debido a que la base de datos
+                consultada informa únicamente los horarios de despegue y aterrizaje
+                observados por el aeropuerto, y no el horario de salida de plataforma
+                (off-block), que es el que utilizan las aerolíneas para evaluar la
+                puntualidad de sus vuelos, las comparaciones deben realizarse con los
+                horarios observados disponibles en la fuente. Por eso, en las partidas,
+                la diferencia entre ATD y STD puede incluir el tiempo de rodaje previo al
+                despegue y no equivale a una métrica basada en AOBT y SOBT.
+            </p>
+            <p>
+                Cuando no hay una partida registrada en el aeropuerto de origen, el
+                informe puede utilizar la llegada registrada en el aeropuerto de destino.
+                Esto ocurre, por ejemplo, con rutas entrantes cuyo aeropuerto de origen
+                está fuera de la base de datos de aeropuertos argentinos. En ese caso,
+                compara la hora de aterrizaje (ATA) con la hora programada de llegada
+                (STA). La medición refleja el aterrizaje en la pista del aeropuerto de
+                destino, no el momento en que el vuelo llega a la puerta.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">02</span>
+            <h2>¿Cómo se considera que un vuelo operó a tiempo?</h2>
+            <p>
+                Se considera que un vuelo operó a tiempo cuando despega o aterriza no
+                más de <strong>30 minutos después de su horario programado</strong>.
+                Se aplica el mismo margen para partidas y llegadas,
+                de modo que los resultados sean fáciles de comparar.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">03</span>
+            <h2>¿Qué ocurre con las cancelaciones y los desvíos?</h2>
+            <p>
+                Los registros marcados como <strong>cancelado</strong> por la fuente
+                cuentan como cancelaciones. Tienen su propia tasa y no ingresan en el
+                cálculo de puntualidad.
+            </p>
+            <p>
+                Un vuelo <strong>desvíado</strong> no es una cancelación, pero no completó
+                el movimiento programado como estaba previsto. Por eso cuenta como un
+                vuelo analizado fuera del margen de 30 minutos. Los desvíos también se muestran por separado
+                en el informe.
+            </p>
+            <p>
+                Los registros <strong>no opera</strong> quedan excluidos de ambos
+                cálculos.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">04</span>
+            <h2>¿Cómo se calculan las tasas?</h2>
+            <div class="formula">
+                <span>Tasa dentro del margen</span>
+                <strong>vuelos dentro de 30 minutos ÷ vuelos analizados × 100</strong>
+            </div>
+            <div class="formula">
+                <span>Tasa de cancelación</span>
+                <strong>observaciones canceladas ÷ observaciones programadas (excepto no opera) × 100</strong>
+            </div>
+            <p>
+                Para calcular la puntualidad, el análisis toma los vuelos que tienen una
+                hora real registrada. Los desvíos también se incluyen entre los vuelos
+                analizados, pero se consideran fuera del margen de 30 minutos. Las
+                cancelaciones y los registros no opera no forman parte de este cálculo.
+                Tampoco se incluyen los registros sin una hora real registrada ni los casos que parecen
+                tener un anticipo de más de seis horas, porque podrían deberse a un error
+                en la fecha de la fuente.
+            </p>
+            <p>
+                Cuando un informe muestra una diferencia típica, se refiere a la
+                <strong>mediana</strong> de las diferencias entre el horario observado y
+                el programado: el valor que queda en el medio cuando se ordenan todos los
+                resultados. Así, un caso excepcional no distorsiona el resultado. Los
+                desvíos no se incluyen porque no completaron normalmente el movimiento
+                previsto.
+            </p>
+            <dl class="performance-scale">
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill good">Generalmente cerca del horario</span></dt>
+                    <dd>Entre <strong>80% y 100%</strong> dentro del margen.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill warning">Desempeño irregular</span></dt>
+                    <dd>Entre <strong>65% y 79,9%</strong> dentro del margen.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill bad">Frecuentemente más de 30 minutos tarde</span></dt>
+                    <dd><strong>Menos de 65%</strong> dentro del margen.</dd>
+                </div>
+                <div class="performance-scale-item">
+                    <dt><span class="status-pill neutral">Datos insuficientes</span></dt>
+                    <dd>Menos de <strong>10 vuelos analizados</strong>; ninguna etiqueta de desempeño se considera confiable.</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">05</span>
+            <h2>¿Qué significa la información de aeronaves?</h2>
+            <p>
+                Los modelos de aeronave son los registrados con mayor frecuencia durante
+                el período histórico seleccionado. Solo aportan contexto: una aerolínea
+                puede cambiar en cualquier momento la aeronave asignada a un vuelo futuro.
+            </p>
+        </section>
+
+        <section class="method-card">
+            <span class="method-number">06</span>
+            <h2>Fuente y limitaciones</h2>
+            <p>
+                Los registros históricos provienen de una
+                <a href="https://failbondi.fail/api/dump" target="_blank" rel="noopener noreferrer">descarga de datos de Failbondi</a>
+                realizada el 29 de julio de 2026. Failbondi publica su
+                <a href="https://github.com/catdevnull/flybondi.fail" target="_blank" rel="noopener noreferrer">código fuente en GitHub</a>
+                y obtiene datos del estado de los vuelos de Aeropuertos Argentina.
+            </p>
+            <p>
+                La fuente no garantiza una cobertura completa ni libre de errores. Solo
+                incluye vuelos observados en aeropuertos argentinos; por eso algunas
+                rutas internacionales se miden desde su llegada. Los códigos de
+                aeropuerto inválidos se omiten de las listas de rutas. Los resultados
+                describen las observaciones históricas disponibles: no predicen un vuelo
+                futuro ni garantizan su desempeño.
+            </p>
+        </section>
+    </article>
+</section>

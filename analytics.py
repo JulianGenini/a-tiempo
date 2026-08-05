@@ -91,7 +91,7 @@ def get_overview(db):
     rows = db.execute(
         """
         SELECT
-            COUNT(*) AS flights,
+            COUNT(*) AS movements,
             COUNT(DISTINCT flight_date) AS days,
             COUNT(DISTINCT airline_id) AS airlines,
             (
@@ -105,7 +105,6 @@ def get_overview(db):
                 )
             ) AS airports
         FROM flights
-        WHERE movement = 'D'
         """
     )
     first_date, last_date = get_dataset_dates(db)
@@ -335,6 +334,17 @@ def performance_label(on_time_rate, usable_observations, threshold_minutes):
     return "Often more than " + str(threshold_minutes) + " minutes late", "bad"
 
 
+def performance_label_key(on_time_rate, usable_observations):
+    """Return a stable translation key for a report's performance band."""
+    if usable_observations < 10:
+        return "insufficient_data"
+    if on_time_rate >= 80:
+        return "usually_near_schedule"
+    if on_time_rate >= 65:
+        return "mixed_performance"
+    return "often_late"
+
+
 def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECONDS):
     """Calculate all report metrics with explicit, explainable rules."""
     scheduled = 0
@@ -422,6 +432,7 @@ def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECOND
         if median_delay is not None
         else None,
         "label": label,
+        "label_key": performance_label_key(on_time_rate, usable),
         "tone": tone,
     }
 

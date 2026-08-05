@@ -3,6 +3,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
     const compareKind = document.querySelector("#compare-kind");
+    const compareForm = document.querySelector("#compare-form");
     const compareInputs = document.querySelectorAll("[data-compare-input]");
     const compareHint = document.querySelector("#compare-hint");
 
@@ -12,14 +13,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         let placeholder = "AR 1458";
-        let hint = "Example: AR 1458";
+        let hint = compareForm.dataset.flightHint;
 
         if (compareKind.value === "route") {
             placeholder = "AEP-COR";
-            hint = "Use ORIGIN-DESTINATION, for example AEP-COR.";
+            hint = compareForm.dataset.routeHint;
         } else if (compareKind.value === "airline") {
             placeholder = "AR";
-            hint = "Use an airline IATA code, for example AR.";
+            hint = compareForm.dataset.airlineHint;
         }
 
         compareInputs.forEach(function (input) {

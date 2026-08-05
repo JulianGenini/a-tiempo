@@ -24,6 +24,10 @@ removes one-date directions when recurrent routes exist. This canonical choice u
 the complete stored history before the selected period is applied, so changing the
 period changes the sample without changing which event the number represents.
 
+A language control keeps the complete interface available in English and Spanish.
+English remains the default, while Spanish URLs carry `lang=es`; links and forms
+preserve that choice without duplicating any database or analytics logic.
+
 A route report first uses a departure observed at its requested origin. If no matching
 departure is available, it falls back to the arrival recorded at the requested
 destination. In most cases this represents an international inbound service, whose
@@ -47,8 +51,13 @@ parameters, calls `analytics.py` and passes results to Jinja templates.
 the observable event, calculates metrics and summarizes months, routes and aircraft.
 It mainly uses loops, lists, dictionaries, sets and conditionals.
 
+`localization.py` contains shared English and Spanish interface text plus localized
+date and number formatting. Flask injects those helpers into every template so both
+languages use the same routes, queries and report calculations.
+
 The `templates` directory contains the shared layout and the home, report, compare,
-methodology and error pages. `static/styles.css` defines the responsive visual design.
+methodology and error pages. The two methodology content partials preserve the longer
+explanation in both languages. `static/styles.css` defines the responsive visual design.
 Bootstrap is stored locally in `static/vendor` and supports the navigation and search
 tabs. `static/script.js` updates comparison examples and opens or closes the route-list
 dialog. `static/favicon.svg` contains the project icon.
@@ -68,10 +77,13 @@ keep visitor input separate from the SQL statement. Python then calculates the r
 and Flask renders the finished HTML with Jinja.
 
 For departures, the project compares actual takeoff time (ATD) with scheduled
-departure time (STD) and counts a result as within the project threshold when it is
-no more than 30 minutes late. The included database has no departure off-block time,
-so this is not the airline metric based on AOBT and SOBT: taxi-out time remains in the
-difference. For inbound arrivals, it compares landing time (ATA) with scheduled
+departure time (STD) and counts a result as within the analysis threshold when it is
+no more than 30 minutes late. Because the included database reports only the takeoff
+and landing times observed by the airport, not the off-block time airlines use to
+assess flight performance, these comparisons must use the observed takeoff and
+landing times available in the source. For departures, the difference may therefore
+include taxi-out time and is not an airline punctuality metric based on AOBT and SOBT.
+For inbound arrivals, it compares landing time (ATA) with scheduled
 arrival time (STA) and uses the same 30-minute threshold. Arrival results describe
 runway landing, not arrival at the gate.
 

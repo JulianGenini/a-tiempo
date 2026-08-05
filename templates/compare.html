@@ -1,33 +1,39 @@
 {% extends "layout.html" %}
 
-{% block title %}Compare · A Tiempo?{% endblock %}
+{% block title %}{{ t('compare_title') }} · A Tiempo?{% endblock %}
 
 {% block main %}
 <section class="page-intro">
-    <p class="eyebrow">Compare the same period</p>
-    <h1>Compare on-time performance.</h1>
-    <p>
-        Compare the historical on-time performance of up to three flights, routes, or airlines.
-    </p>
+    <p class="eyebrow">{{ t('compare_same_period') }}</p>
+    <h1>{{ t('compare_heading') }}</h1>
+    <p>{{ t('compare_description') }}</p>
 </section>
 
 <section class="form-card">
-    <form action="{{ url_for('compare') }}" method="get" id="compare-form">
+    <form
+        action="{{ url_for('compare') }}"
+        method="get"
+        id="compare-form"
+        data-flight-hint="{{ t('compare_hint_flight') }}"
+        data-route-hint="{{ t('compare_hint_route') }}"
+        data-airline-hint="{{ t('compare_hint_airline') }}"
+    >
+        {% if lang == 'es' %}<input type="hidden" name="lang" value="es">{% endif %}
         <div class="form-grid">
             <div>
-                <label for="compare-kind">What are you comparing?</label>
+                <label for="compare-kind">{{ t('what_comparing') }}</label>
                 <select id="compare-kind" name="kind">
-                    <option value="flight" {% if kind == "flight" %}selected{% endif %}>Flights</option>
-                    <option value="route" {% if kind == "route" %}selected{% endif %}>Routes</option>
-                    <option value="airline" {% if kind == "airline" %}selected{% endif %}>Airlines</option>
+                    <option value="flight" {% if kind == "flight" %}selected{% endif %}>{{ t('flight_plural') }}</option>
+                    <option value="route" {% if kind == "route" %}selected{% endif %}>{{ t('route_plural') }}</option>
+                    <option value="airline" {% if kind == "airline" %}selected{% endif %}>{{ t('airline_plural') }}</option>
                 </select>
             </div>
             <div>
-                <label for="compare-period">Dates to include</label>
+                <label for="compare-period">{{ t('dates_to_include') }}</label>
                 <select id="compare-period" name="period">
-                    <option value="90" {% if period == "90" %}selected{% endif %}>Last 90 days in database</option>
-                    <option value="365" {% if period == "365" %}selected{% endif %}>Last 365 days in database</option>
-                    <option value="all" {% if period == "all" %}selected{% endif %}>Every stored date</option>
+                    <option value="90" {% if period == "90" %}selected{% endif %}>{{ t('last_90_days') }}</option>
+                    <option value="365" {% if period == "365" %}selected{% endif %}>{{ t('last_365_days') }}</option>
+                    <option value="all" {% if period == "all" %}selected{% endif %}>{{ t('every_date') }}</option>
                 </select>
             </div>
         </div>
@@ -35,7 +41,7 @@
         <div class="comparison-inputs">
             {% for index in range(3) %}
             <div>
-                <label for="item{{ index + 1 }}">Choice {{ index + 1 }}{% if index == 2 %} (optional){% endif %}</label>
+                <label for="item{{ index + 1 }}">{{ t('choice', number=index + 1) }}{% if index == 2 %} ({{ t('optional') }}){% endif %}</label>
                 <input
                     id="item{{ index + 1 }}"
                     name="item{{ index + 1 }}"
@@ -46,8 +52,8 @@
             </div>
             {% endfor %}
         </div>
-        <p class="form-hint" id="compare-hint">Example: AR 1458</p>
-        <button class="primary-button" type="submit">Compare</button>
+        <p class="form-hint" id="compare-hint">{{ t('compare_hint_flight') }}</p>
+        <button class="primary-button" type="submit">{{ t('compare_button') }}</button>
     </form>
 </section>
 
@@ -59,18 +65,16 @@
 <section class="content-section section-card comparison-results">
     <div class="section-heading">
         <div>
-            <h2>Comparison result</h2>
+            <h2>{{ t('comparison_result') }}</h2>
             {% if not mixed_movements %}
-            <p>{{ results[0].report.movement_name }} · within {{ results[0].report.threshold_minutes }} minutes of schedule</p>
+            <p>{{ t('arrivals' if results[0].report.movement == 'A' else 'departures') }} · {{ t('within_schedule', minutes=results[0].report.threshold_minutes) }}</p>
             {% endif %}
         </div>
     </div>
 
     {% if mixed_movements %}
     <p class="comparison-note">
-        These results use different observed events. Departures compare takeoff with
-        schedule, while international arrivals compare landing with schedule when their
-        origin is outside the Argentine airport dataset. Both use a 30-minute threshold.
+        {{ t('mixed_comparison') }}
     </p>
     {% endif %}
 
@@ -78,11 +82,11 @@
         <table class="data-table comparison-table">
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th>On time</th>
-                    <th>Typical difference</th>
-                    <th>Cancelled</th>
-                    <th>Flights analysed</th>
+                    <th>{{ t('item') }}</th>
+                    <th>{{ t('on_time') }}</th>
+                    <th>{{ t('typical_difference') }}</th>
+                    <th>{{ t('cancelled') }}</th>
+                    <th>{{ t('flights_analysed') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -95,17 +99,17 @@
                         {{ result.title }}
                         {% endif %}
                     </th>
-                    <td><strong>{{ result.report.performance.on_time_rate_display }}</strong></td>
+                    <td><strong>{{ numeric(result.report.performance.on_time_rate_display) }}</strong></td>
                     <td>
                         {% set median = result.report.performance.median_delay %}
                         {% if median is none %}—
-                        {% elif median > 0 %}{{ median }} min late
-                        {% elif median < 0 %}{{ median|abs }} min early
-                        {% else %}On schedule
+                        {% elif median > 0 %}{{ t('minutes_late', value=numeric(median)) }}
+                        {% elif median < 0 %}{{ t('minutes_early', value=numeric(median|abs)) }}
+                        {% else %}{{ t('on_schedule') }}
                         {% endif %}
                     </td>
-                    <td>{{ result.report.performance.cancellation_rate_display }} <small>({{ result.report.performance.cancelled }})</small></td>
-                    <td>{{ "{:,}".format(result.report.performance.usable) }}</td>
+                    <td>{{ numeric(result.report.performance.cancellation_rate_display) }} <small>({{ number(result.report.performance.cancelled) }})</small></td>
+                    <td>{{ number(result.report.performance.usable) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

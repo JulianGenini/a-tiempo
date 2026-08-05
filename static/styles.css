@@ -137,6 +137,33 @@ select:focus-visible {
     gap: 0.35rem;
 }
 
+.language-switcher {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-left: 0.8rem;
+    color: #8eaaaf;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.language-link {
+    border-radius: 4px;
+    color: #b9ced1;
+    padding: 0.3rem 0.35rem;
+    text-decoration: none;
+}
+
+.language-link:hover {
+    color: white;
+}
+
+.language-link.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--yellow);
+}
+
 .site-navbar .nav-link {
     border-radius: 6px;
     color: #dbe7e9;
@@ -1378,6 +1405,7 @@ input::placeholder {
 
 .formula + .formula {
     margin-top: 0.65rem;
+    margin-bottom: 1rem;
 }
 
 .error-page {
@@ -1442,6 +1470,11 @@ input::placeholder {
         margin-top: 0.6rem;
         padding-top: 0.6rem;
         border-top: 1px solid var(--border);
+    }
+
+    .language-switcher {
+        margin: 0.65rem 0 0;
+        padding-top: 0.15rem;
     }
 
     .page-intro {
