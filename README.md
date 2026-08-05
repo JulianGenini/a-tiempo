@@ -2,146 +2,160 @@
 
 #### Video Demo: TODO
 
-#### Description
+## Description
 
-A Tiempo? is a local web application for exploring how flight services observed at
-Argentine airports performed against their published schedules. It answers historical
-questions about runway timing, typical differences and comparisons between routes or
-airlines. It uses 417,278 observations stored in an included SQLite database, covering
-December 23, 2024 through July 29, 2026.
+A Tiempo? is a bilingual Flask web application for exploring the historical
+performance of flights observed at Argentine airports. It includes 417,278 records
+from December 23, 2024 through July 29, 2026 and works locally after installation.
+The data is historical, not predictive, and does not provide live flight status.
 
-The project was created for CS50x and combines Python, SQL, Flask, HTML, CSS and
-JavaScript. Historical searches use only local files and need no Internet connection
-after installation. The fixed dataset is descriptive rather than predictive and does
-not show current flight status.
+Users can search by flight number, route or airline and choose the last 90 days, last
+365 days or the complete dataset. Reports show:
 
-## Main features
+- observations and cancellation rates;
+- the typical (median) difference from the published schedule;
+- results within or outside a 30-minute threshold;
+- monthly trends and commonly recorded aircraft models.
 
-The home page lets a visitor search by flight number, route or airline. Because the
-source can repeat a number during a daily rotation, a flight-number report keeps the
-earliest scheduled event per date. It then selects the recurring movement type and
-removes one-date directions when recurrent routes exist. This canonical choice uses
-the complete stored history before the selected period is applied, so changing the
-period changes the sample without changing which event the number represents.
+The comparison page places two or three flights, routes or airlines side by side for
+the same period. The complete interface is available in English and Spanish.
 
-A language control keeps the complete interface available in English and Spanish.
-English remains the default, while Spanish URLs carry `lang=es`; links and forms
-preserve that choice without duplicating any database or analytics logic.
+## Technologies
 
-A route report first uses a departure observed at its requested origin. If no matching
-departure is available, it falls back to the arrival recorded at the requested
-destination. In most cases this represents an international inbound service, whose
-foreign departure is outside the Argentine-airport dataset. Airline reports use
-recorded departures. The Compare page places two or three flights, routes or airlines
-side by side for the same period. When a comparison mixes departures and inbound
-arrivals, the page explains their different observed events and shared 30-minute
-threshold.
+The project follows the same web stack introduced in CS50x. Python and Flask handle
+the application routes and prepare the information shown on each page. SQL is used
+to read an SQLite database through CS50's `SQL` helper. Jinja templates generate the
+HTML, while CSS, Bootstrap and a small amount of JavaScript provide the design and
+browser interactions.
 
-Reports show usable observations, timing and cancellation rates, average and median
-differences, monthly history and commonly recorded aircraft models. Aircraft details
-are historical context, not a future assignment. Visitors can select the final 90
-days, final 365 days or all stored history.
-
-## Project files
-
-`app.py` creates the Flask application and its page routes. It validates GET
-parameters, calls `analytics.py` and passes results to Jinja templates.
-
-`analytics.py` contains SQL queries and calculations. It normalizes searches, chooses
-the observable event, calculates metrics and summarizes months, routes and aircraft.
-It mainly uses loops, lists, dictionaries, sets and conditionals.
-
-`localization.py` contains shared English and Spanish interface text plus localized
-date and number formatting. Flask injects those helpers into every template so both
-languages use the same routes, queries and report calculations.
-
-The `templates` directory contains the shared layout and the home, report, compare,
-methodology and error pages. The two methodology content partials preserve the longer
-explanation in both languages. `static/styles.css` defines the responsive visual design.
-Bootstrap is stored locally in `static/vendor` and supports the navigation and search
-tabs. `static/script.js` updates comparison examples and opens or closes the route-list
-dialog. `static/favicon.svg` contains the project icon.
-
-`database/flights.db` is the prepared SQLite database used by the application.
-`database/schema.sql` documents its normalized tables, foreign keys, indexes and the
-readable `flight_details` view; it does not populate the database. `requirements.txt`
-lists the Python dependencies. The `tests` directory contains unit tests for the
-calculations and integration tests for Flask routes. `.github/workflows/tests.yml`
-runs those tests on configured GitHub branches.
+All searches use the database included in the repository, so the application does
+not depend on an external API or a separate database server. Bootstrap is also stored
+locally. After the two Python packages in `requirements.txt` have been installed, the
+site can therefore run without an Internet connection.
 
 ## How the analysis works
 
-The browser submits a GET form, a Flask route validates its values, and
-`analytics.py` runs a parameterized query with CS50's `SQL` helper. Query parameters
-keep visitor input separate from the SQL statement. Python then calculates the report
-and Flask renders the finished HTML with Jinja.
+For departures, the application compares actual takeoff time (ATD) with scheduled
+departure time (STD). For inbound arrivals, it compares actual landing time (ATA)
+with scheduled arrival time (STA). A result is considered within the analysis
+threshold when it is no more than 30 minutes late.
 
-For departures, the project compares actual takeoff time (ATD) with scheduled
-departure time (STD) and counts a result as within the analysis threshold when it is
-no more than 30 minutes late. Because the included database reports only the takeoff
-and landing times observed by the airport, not the off-block time airlines use to
-assess flight performance, these comparisons must use the observed takeoff and
-landing times available in the source. For departures, the difference may therefore
-include taxi-out time and is not an airline punctuality metric based on AOBT and SOBT.
-For inbound arrivals, it compares landing time (ATA) with scheduled
-arrival time (STA) and uses the same 30-minute threshold. Arrival results describe
-runway landing, not arrival at the gate.
+These are runway events, not airline punctuality measurements based on gate or
+off-block times. Departure differences may include taxi-out time, while arrival
+results describe landing rather than arrival at the gate.
 
-Only the explicit source status `Cancelled` counts as a cancellation. `NO OPERA` is
-kept separate and removed from both rate denominators. A `DIVERTED` record is not a
-cancellation, but it counts as an analysed flight outside the timing threshold because
-the scheduled movement was not completed as planned. Other records need a valid event
-time. Long positive delays remain in the analysis, while differences earlier than six
-hours are excluded as likely source-date mismatches. The typical difference shown to
-users is the median, which limits the effect of isolated extreme values. Reports with
-fewer than ten analysed observations receive an “Insufficient data” label. Placeholder
-airport values such as `--I`, `-AR` and `-BR` are not displayed as routes, although a
-record can still contribute to timing metrics when its times are valid.
+Only records explicitly marked `Cancelled` count as cancellations. `NO OPERA`
+records are excluded from rate denominators, while `DIVERTED` records count as
+analysed flights outside the threshold. Records without a valid event time and
+differences earlier than six hours are excluded. Reports with fewer than ten usable
+observations are labelled as having insufficient data.
 
-## Data source and limitations
+The typical difference is the median rather than the average. The values are sorted
+and the middle one is selected, so an isolated very long delay does not distort the
+number shown to the user. If there is an even number of values, the two middle values
+are averaged. Monthly results repeat the same rules for each calendar month.
 
-The prepared database came from the public Failbondi dump at
-`https://failbondi.fail/api/dump`; Failbondi's source code is available at
-`https://github.com/catdevnull/flybondi.fail`. The original raw dump and the
-importer used during database preparation are not included in this repository, so the
-data-preparation step cannot be reproduced from the submitted files alone. The
-included schema documents the final structure, while the database provides the fixed
-records needed to run the project.
+Flight numbers sometimes appear more than once on the same date because the same
+number can be reused later in a daily rotation. The application keeps the earliest
+scheduled observation for each date, identifies whether that flight is most commonly
+observed as a departure or arrival, and removes directions that appear only once when
+recurring directions exist. This choice is made using the complete history before the
+selected 90-day or 365-day filter is applied. As a result, changing the period changes
+the sample but does not unexpectedly change which service the flight number means.
 
-The source does not guarantee completeness or accuracy. The dataset contains only
-services observed at Argentine airports, and the reconstruction rules make
-conservative choices when source rows are repeated or incomplete. Results describe
-past observations and are not a promise of future performance. Travelers should
-always confirm operational information with their airline or airport.
+Route searches first look for a departure observed at the requested origin. If none
+exists, the application looks for an arrival observed at the destination. This is
+useful for international inbound routes whose foreign departure is outside the
+Argentina-only dataset. Airline reports use recorded departures.
 
-## Installation and tests
+## Project structure
 
-Python 3.11 or later is recommended.
+`app.py` is the entry point. It creates the Flask application, opens
+`database/flights.db`, validates the values received from each form and defines the
+home, flight, route, airline, comparison, methodology and error routes. It passes the
+result of each search to the appropriate template.
+
+`analytics.py` contains the database queries and calculations. Its functions select
+the observations for a search, calculate cancellation and timing rates, group records
+by month, list the available routes and summarize aircraft models. Keeping these
+functions outside `app.py` makes the routes shorter and separates page handling from
+data analysis.
+
+`localization.py` stores the English and Spanish interface text in one dictionary. It
+also contains small helpers for dates, thousands separators and decimal separators.
+Both languages use the same Flask routes, SQL queries and templates; the `lang`
+parameter only changes the text and formatting.
+
+Inside `templates/`, `layout.html` provides the shared navigation, dataset notice and
+footer. `home.html`, `report.html`, `compare.html` and `error.html` contain the pages
+rendered by Flask. `methodology.html` selects either `methodology_en.html` or
+`methodology_es.html`, which hold the longer explanation in each language. Template
+inheritance avoids repeating the full HTML document on every page.
+
+Inside `static/`, `styles.css` contains the responsive visual design and
+`script.js` contains two small interactions: it updates the examples on the comparison
+form and controls the dialog that lists routes. `favicon.svg` is the site icon. The
+`vendor/` directory contains the local Bootstrap CSS and JavaScript used by the
+navigation bar and the search tabs.
+
+`database/flights.db` is the prepared SQLite database used by the application.
+`database/schema.sql` documents its normalized tables, relationships, indexes and
+readable view. The schema is included so the organization of the data can be examined,
+but the populated database is already ready to use.
+
+`requirements.txt` lists Flask and the CS50 library, the only Python packages that
+must be installed. Queries are parameterized through CS50's `SQL` helper, keeping
+visitor input separate from SQL statements.
+
+## How to run the project
+
+From a terminal in the project directory, install the two dependencies once:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
-flask --app app run
 ```
 
-Open `http://127.0.0.1:5000`. Run the automated tests with:
+Then start Flask in the same way as the CS50 Finance project:
 
 ```bash
-python -m unittest discover -s tests -v
+flask run
 ```
+
+Because the entry point is named `app.py`, Flask finds it automatically; no `--app`
+option or custom command is needed. Open the URL printed in the terminal, normally
+`http://127.0.0.1:5000`. Stop the server with `Ctrl-C`.
 
 ## Design decisions
 
-The interface uses an airport-information style with a dark navigation bar, warm
-background and signal-yellow accent. Monthly histories use HTML and CSS bars instead
-of a charting library, keeping the project local and easier to inspect. A shared
-layout avoids repeating navigation and footer markup, while separate Flask routes
-keep each type of search explicit.
+The interface uses a shared layout so navigation, language controls and the footer
+remain consistent. Separate routes for flight, route and airline searches make each
+validation path explicit. The forms use `GET` because a report only reads data and its
+parameters can be kept in a link. SQL values are passed with `?` placeholders through
+`db.execute` instead of being inserted into query strings.
+
+The monthly charts and aircraft bars are ordinary HTML elements styled with CSS.
+This avoids adding a charting framework for a small visual feature and keeps the code
+within the HTML, CSS and JavaScript covered by CS50. JavaScript only improves two
+interactions; searches, reports and validation continue to work through Flask forms.
+
+English is the default language. Spanish pages add `lang=es` to their links and form
+submissions. This approach avoids duplicating routes or calculations, although it
+requires all visible interface phrases to have both translations.
+
+## Data source and limitations
+
+The database was prepared from the public Failbondi dump at
+<https://failbondi.fail/api/dump>. Its source code is available at
+<https://github.com/catdevnull/flybondi.fail>.
+
+The original dump and importer are not included, so the preparation process cannot
+be reproduced from this repository alone. The source may contain incomplete or
+inaccurate records and covers only services observed at Argentine airports. Results
+describe the included historical observations and should not be used as operational
+travel information.
 
 ## Acknowledgements
 
-Historical data was obtained from a prepared Failbondi dump. OpenAI Codex assisted
-with database preparation, code, testing, design and documentation. That assistance
-is disclosed in source-code comments in accordance with the CS50 academic honesty
-policy.
+Historical data was obtained from Failbondi. OpenAI Codex assisted with database
+preparation, code, testing, design and documentation, as disclosed in source-code
+comments in accordance with the CS50 academic honesty policy.

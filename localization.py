@@ -6,9 +6,11 @@ Developed with assistance from OpenAI Codex.
 from datetime import datetime
 
 
+# The language selector only accepts these two codes
 SUPPORTED_LANGUAGES = {"en", "es"}
 
 
+# Each key keeps the English and Spanish version of the same interface text
 TEXT = {
     "meta_description": {
         "en": "Explore historical flight performance observed at Argentine airports.",
@@ -23,8 +25,6 @@ TEXT = {
     "compare_nav": {"en": "Compare", "es": "Comparar"},
     "methodology_nav": {"en": "How it works", "es": "Cómo funciona"},
     "language_selector": {"en": "Language", "es": "Idioma"},
-    "english": {"en": "English", "es": "Inglés"},
-    "spanish": {"en": "Spanish", "es": "Español"},
     "dataset_title": {
         "en": "Argentina-only historical dataset:",
         "es": "Base de datos limitada a Argentina:",
@@ -311,6 +311,7 @@ TEXT = {
 }
 
 
+# strftime does not translate month names, so Spanish months are stored here
 SPANISH_MONTHS = (
     "enero",
     "febrero",

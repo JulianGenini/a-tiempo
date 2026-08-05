@@ -3,7 +3,6 @@
 Developed with assistance from OpenAI Codex.
 """
 
-from pathlib import Path
 from urllib.parse import urlencode
 
 from cs50 import SQL
@@ -29,13 +28,13 @@ from localization import (
     normalize_language,
     translate,
 )
+
+# Configure Flask and connect to the included SQLite database
 app = Flask(__name__)
-
-PROJECT_DIRECTORY = Path(__file__).resolve().parent
-DATABASE_PATH = PROJECT_DIRECTORY / "database" / "flights.db"
-db = SQL("sqlite:///" + str(DATABASE_PATH))
+db = SQL("sqlite:///database/flights.db")
 
 
+# Language helpers keep the selected language when moving between pages
 def current_language():
     return normalize_language(request.args.get("lang", "en"))
 
@@ -56,6 +55,7 @@ def language_url(language):
     return request.path + ("?" + query if query else "")
 
 
+# Make the translation and formatting helpers available in every template
 @app.context_processor
 def inject_localization():
     language = current_language()
@@ -69,6 +69,7 @@ def inject_localization():
     }
 
 
+# Helpers shared by the search routes
 def render_error(message_key, status=400):
     message = translate(message_key, current_language())
     return render_template("error.html", message=message), status
@@ -79,15 +80,13 @@ def valid_iata(value):
 
 
 def report_context(rows, period):
-    start_date, end_date = get_start_date(db, period)
     return {
         "report": build_report(rows),
         "period": period,
-        "start_date": start_date,
-        "end_date": end_date,
     }
 
 
+# Search reports
 @app.route("/flight")
 def flight_report():
     number = request.args.get("number", "")
@@ -97,7 +96,7 @@ def flight_report():
     if not compact:
         return render_error("error_enter_flight")
 
-    start_date, end_date = get_start_date(db, period)
+    start_date, _ = get_start_date(db, period)
     rows = get_flight_observations(db, compact, start_date)
     if not rows:
         return render_error("error_no_flight", 404)
@@ -130,7 +129,7 @@ def route_report():
     if origin == destination:
         return render_error("error_same_airport")
 
-    start_date, end_date = get_start_date(db, period)
+    start_date, _ = get_start_date(db, period)
     rows = get_route_observations(db, origin, destination, start_date)
     if not rows:
         return render_error("error_no_route", 404)
@@ -163,7 +162,7 @@ def airline_report():
     if not code or len(code) > 3:
         return render_error("error_airline")
 
-    start_date, end_date = get_start_date(db, period)
+    start_date, _ = get_start_date(db, period)
     rows = get_airline_observations(db, code, start_date)
     if not rows:
         return render_error("error_no_airline", 404)
@@ -187,6 +186,7 @@ def airline_report():
     return render_template("report.html", **context)
 
 
+# Comparison helpers
 def parse_route_item(value):
     cleaned = value.upper().replace("/", "-").replace(" ", "")
     parts = cleaned.split("-")
@@ -198,6 +198,8 @@ def parse_route_item(value):
 
 
 def comparison_result(kind, item, start_date):
+    route = None
+
     if kind == "flight":
         compact = normalize_flight_number(item)
         if not compact:
@@ -222,7 +224,7 @@ def comparison_result(kind, item, start_date):
         return None
     return {
         "title": title,
-        "route": route if kind == "route" else None,
+        "route": route,
         "report": build_report(rows),
     }
 
@@ -234,6 +236,7 @@ def compare():
     if kind not in {"flight", "route", "airline"}:
         kind = "flight"
 
+    # The third item is optional, so only keep fields that have a value
     items = []
     for name in ("item1", "item2", "item3"):
         value = request.args.get(name, "").strip()
@@ -242,7 +245,7 @@ def compare():
 
     results = []
     error = None
-    start_date, end_date = get_start_date(db, period)
+    start_date, _ = get_start_date(db, period)
 
     if items:
         if len(items) < 2:
@@ -256,6 +259,7 @@ def compare():
                     break
                 results.append(result)
 
+    # Departures and arrivals use different observed events
     movements = []
     for result in results:
         movement = result["report"]["movement"]
@@ -271,11 +275,10 @@ def compare():
         results=results,
         error=error,
         mixed_movements=mixed_movements,
-        start_date=start_date,
-        end_date=end_date,
     )
 
 
+# General pages
 @app.route("/")
 def home():
     panel = request.args.get("panel", "flight")
@@ -305,5 +308,6 @@ def not_found(error):
     return render_error("error_not_found", 404)
 
 
+# This also allows the application to run with "python app.py"
 if __name__ == "__main__":
     app.run()
