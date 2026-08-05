@@ -1,35 +1,32 @@
 {% extends "layout.html" %}
 
-{% block title %}Home · A Tiempo?{% endblock %}
+{% block title %}{{ t('home_title') }} · A Tiempo?{% endblock %}
 
 {% block main %}
 <section class="home-hero">
     <div class="hero-copy">
-        <p class="eyebrow"><span aria-hidden="true">✈</span> Historical services observed at Argentine airports</p>
-        <h1>Know your flight before you fly.</h1>
-        <p>
-            See historical takeoff or landing delays, cancellations, schedules and
-            the aircraft commonly recorded for each service.
-        </p>
+        <p class="eyebrow"><span aria-hidden="true">✈</span> {{ t('hero_eyebrow') }}</p>
+        <h1>{{ t('hero_title') }}</h1>
+        <p>{{ t('hero_description') }}</p>
         <div class="hero-actions">
-            <a class="primary-button" href="#search">Search the database</a>
+            <a class="primary-button" href="#search">{{ t('search_database') }}</a>
         </div>
     </div>
 
-    <aside class="hero-facts" aria-label="Database summary">
-        <p class="hero-facts-title">Built from airport history</p>
+    <aside class="hero-facts" aria-label="{{ t('database_summary') }}">
+        <p class="hero-facts-title">{{ t('built_from_history') }}</p>
         <dl>
             <div>
-                <dt>{{ overview.flights // 1000 }}K</dt>
-                <dd>departures</dd>
+                <dt>{{ overview.movements // 1000 }}K</dt>
+                <dd>{{ t('movements_count') }}</dd>
             </div>
             <div>
                 <dt>{{ overview.airports }}</dt>
-                <dd>airports connected</dd>
+                <dd>{{ t('airports_connected') }}</dd>
             </div>
             <div>
                 <dt>{{ overview.airlines }}</dt>
-                <dd>airlines represented</dd>
+                <dd>{{ t('airlines_represented') }}</dd>
             </div>
         </dl>
     </aside>
@@ -38,13 +35,13 @@
 <section class="search-workspace" id="search" aria-labelledby="search-heading">
     <div class="workspace-heading">
         <div>
-            <p class="step-label">Search</p>
-            <h2 id="search-heading">Choose how you want to search</h2>
+            <p class="step-label">{{ t('search') }}</p>
+            <h2 id="search-heading">{{ t('choose_search') }}</h2>
         </div>
     </div>
 
     <ul class="nav search-tabs" id="search-tabs" role="tablist">
-        {% for name, label in [('flight', 'Flight number'), ('route', 'Route'), ('airline', 'Airline')] %}
+        {% for name, label_key in [('flight', 'flight_number'), ('route', 'route'), ('airline', 'airline')] %}
         <li class="nav-item" role="presentation">
             <button
                 class="nav-link {% if panel == name %}active{% endif %}"
@@ -55,7 +52,7 @@
                 role="tab"
                 aria-controls="{{ name }}-panel"
                 aria-selected="{{ 'true' if panel == name else 'false' }}"
-            >{{ label }}</button>
+            >{{ t(label_key) }}</button>
         </li>
         {% endfor %}
     </ul>
@@ -64,64 +61,67 @@
         <div class="tab-pane fade {% if panel == 'flight' %}show active{% endif %}" id="flight-panel" role="tabpanel" aria-labelledby="flight-tab" tabindex="0">
             <form class="compact-search-form" action="{{ url_for('flight_report') }}" method="get">
                 <div class="search-copy">
-                    <h3>Look up a flight</h3>
-                    <p>Enter the airline code and flight number to view its history.</p>
+                    <h3>{{ t('lookup_flight') }}</h3>
+                    <p>{{ t('lookup_flight_help') }}</p>
                 </div>
                 <div class="search-control">
-                    <label for="flight-number">Flight number</label>
+                    <label for="flight-number">{{ t('flight_number') }}</label>
                     <input id="flight-number" name="number" placeholder="AR1458" required>
                 </div>
                 <input type="hidden" name="period" value="365">
-                <button class="primary-button" type="submit">View history</button>
+                {% if lang == 'es' %}<input type="hidden" name="lang" value="es">{% endif %}
+                <button class="primary-button" type="submit">{{ t('view_history') }}</button>
             </form>
-            <p class="try-example">Try an example: <a href="{{ url_for('flight_report', number='AR1458', period='365') }}">AR1458</a></p>
+            <p class="try-example">{{ t('try_example') }} <a href="{{ lurl('flight_report', number='AR1458', period='365') }}">AR1458</a></p>
         </div>
 
         <div class="tab-pane fade {% if panel == 'route' %}show active{% endif %}" id="route-panel" role="tabpanel" aria-labelledby="route-tab" tabindex="0">
             <form class="compact-search-form route-search-form" action="{{ url_for('route_report') }}" method="get">
                 <div class="search-copy">
-                    <h3>Select a direction</h3>
-                    <p>A → B and B → A are treated as different routes.</p>
+                    <h3>{{ t('select_direction') }}</h3>
+                    <p>{{ t('direction_help') }}</p>
                 </div>
                 <div class="route-control">
                     <div>
-                        <label for="origin">Origin</label>
+                        <label for="origin">{{ t('origin') }}</label>
                         <select id="origin" name="origin" required>
-                            <option value="">Choose airport</option>
-                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or "Unknown" }}</option>{% endfor %}
+                            <option value="">{{ t('choose_airport') }}</option>
+                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or t('unknown') }}</option>{% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label for="destination">Destination</label>
+                        <label for="destination">{{ t('destination') }}</label>
                         <select id="destination" name="destination" required>
-                            <option value="">Choose airport</option>
-                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or "Unknown" }}</option>{% endfor %}
+                            <option value="">{{ t('choose_airport') }}</option>
+                            {% for airport in airports %}<option value="{{ airport.iata }}">{{ airport.iata }} · {{ airport.name or t('unknown') }}</option>{% endfor %}
                         </select>
                     </div>
                 </div>
                 <input type="hidden" name="period" value="365">
-                <button class="primary-button" type="submit">View history</button>
+                {% if lang == 'es' %}<input type="hidden" name="lang" value="es">{% endif %}
+                <button class="primary-button" type="submit">{{ t('view_history') }}</button>
             </form>
-            <p class="try-example">Try an example: <a href="{{ url_for('route_report', origin='AEP', destination='COR', period='365') }}">AEP <span class="route-link-arrow" aria-hidden="true">→</span> COR</a></p>
+            <p class="try-example">{{ t('try_example') }} <a href="{{ lurl('route_report', origin='AEP', destination='COR', period='365') }}">AEP <span class="route-link-arrow" aria-hidden="true">→</span> COR</a></p>
         </div>
 
         <div class="tab-pane fade {% if panel == 'airline' %}show active{% endif %}" id="airline-panel" role="tabpanel" aria-labelledby="airline-tab" tabindex="0">
             <form class="compact-search-form" action="{{ url_for('airline_report') }}" method="get">
                 <div class="search-copy">
-                    <h3>View airline activity</h3>
-                    <p>This includes all recorded departures for the selected airline during the chosen period.</p>
+                    <h3>{{ t('view_airline') }}</h3>
+                    <p>{{ t('view_airline_help') }}</p>
                 </div>
                 <div class="search-control">
-                    <label for="airline-code">Airline</label>
+                    <label for="airline-code">{{ t('airline') }}</label>
                     <select id="airline-code" name="code" required>
-                        <option value="">Choose airline</option>
+                        <option value="">{{ t('choose_airline') }}</option>
                         {% for airline in airlines %}<option value="{{ airline.iata }}">{{ airline.iata }} · {{ airline.name.title() }}</option>{% endfor %}
                     </select>
                 </div>
                 <input type="hidden" name="period" value="365">
-                <button class="primary-button" type="submit">View history</button>
+                {% if lang == 'es' %}<input type="hidden" name="lang" value="es">{% endif %}
+                <button class="primary-button" type="submit">{{ t('view_history') }}</button>
             </form>
-            <p class="try-example">Try an example: <a href="{{ url_for('airline_report', code='AR', period='365') }}">AR Aerolíneas Argentinas</a></p>
+            <p class="try-example">{{ t('try_example') }} <a href="{{ lurl('airline_report', code='AR', period='365') }}">AR Aerolíneas Argentinas</a></p>
         </div>
 
     </div>
