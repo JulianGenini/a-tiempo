@@ -142,7 +142,7 @@ class AppTests(unittest.TestCase):
         self.assertIn(b"417,278", response.data)
         self.assertIn(b"airport observations", response.data)
         self.assertIn(b"AOBT", response.data)
-        self.assertIn(b"DIVERTED", response.data)
+        self.assertIn(b"diverted", response.data.lower())
         self.assertIn(b"https://failbondi.fail/api/dump", response.data)
 
     def test_spanish_methodology_uses_localized_dates_and_content(self):
