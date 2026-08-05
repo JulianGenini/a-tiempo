@@ -6,11 +6,28 @@ Developed with assistance from OpenAI Codex.
 from datetime import datetime, timedelta
 
 
+# Rules shared by all reports
 VALID_PERIODS = {"90", "365", "all"}
-MAX_VALID_DELAY_SECONDS = 6 * 60 * 60
-ON_TIME_LIMIT_SECONDS = 15 * 60
+MAX_VALID_EARLY_SECONDS = 6 * 60 * 60
+DEPARTURE_ON_TIME_LIMIT_SECONDS = 30 * 60
+ARRIVAL_ON_TIME_LIMIT_SECONDS = 30 * 60
+
+# Known beginnings help detect aircraft names joined without a separator
+AIRCRAFT_MODEL_PREFIXES = (
+    "Airbus ",
+    "ATR ",
+    "BAe ",
+    "Beech ",
+    "Boeing ",
+    "Canadair ",
+    "Dash ",
+    "Embraer ",
+    "McDonnell ",
+    "Saab ",
+)
 
 
+# Period, date, and home-page helpers
 def normalize_period(period):
     """Return a supported period, using one year as the default."""
     if period in VALID_PERIODS:
@@ -23,6 +40,7 @@ def get_dataset_dates(db):
         """
         SELECT MIN(flight_date) AS first_date, MAX(flight_date) AS last_date
         FROM flights
+        WHERE movement = 'D'
         """
     )
     return rows[0]["first_date"], rows[0]["last_date"]
@@ -62,6 +80,7 @@ def get_airlines(db):
         SELECT DISTINCT a.iata, a.name
         FROM airlines AS a
         JOIN flights AS f ON f.airline_id = a.id
+        WHERE f.movement = 'D'
         ORDER BY a.name
         """
     )
@@ -71,8 +90,7 @@ def get_overview(db):
     rows = db.execute(
         """
         SELECT
-            COUNT(*) AS flights,
-            COUNT(DISTINCT flight_date) AS days,
+            COUNT(*) AS movements,
             COUNT(DISTINCT airline_id) AS airlines,
             (
                 SELECT COUNT(*)
@@ -87,21 +105,10 @@ def get_overview(db):
         FROM flights
         """
     )
-    first_date, last_date = get_dataset_dates(db)
-    overview = rows[0]
-    overview["first_date"] = first_date
-    overview["last_date"] = last_date
-    overview["first_date_label"] = format_date(first_date)
-    overview["last_date_label"] = format_date(last_date)
-    return overview
+    return rows[0]
 
 
-def format_date(value):
-    """Format an ISO date for the compact home-page data snapshot."""
-    date = datetime.strptime(value, "%Y-%m-%d")
-    return str(date.day) + date.strftime(" %b %Y")
-
-
+# Input helpers
 def normalize_flight_number(value):
     """Remove spaces so AR 1400 and AR1400 produce the same search."""
     if value is None:
@@ -118,6 +125,12 @@ def display_flight_number(value):
     return compact
 
 
+def valid_iata_code(value):
+    """Return True only for three-letter airport codes."""
+    return isinstance(value, str) and len(value) == 3 and value.isalpha()
+
+
+# Observation queries
 def base_observation_query():
     """Shared SELECT used by the three report searches."""
     return """
@@ -125,7 +138,6 @@ def base_observation_query():
             f.flight_date,
             f.delay_seconds,
             f.movement,
-            f.flight_number,
             fs.status_en,
             observed.iata AS airport_iata,
             counterpart.iata AS counterpart_iata,
@@ -140,42 +152,128 @@ def base_observation_query():
 
 
 def get_flight_observations(db, flight_number, start_date):
+    """Return one recurring observable event for this number on each date.
+
+    The source can repeat a flight number across later events in the same daily
+    rotation. The earliest event is kept per date, then the recurring movement and
+    routes are selected using the complete history. The date filter is applied last
+    so changing the report period does not change which event the number represents.
+    This supports both departures from Argentina and arrivals whose international
+    origin is outside the dataset.
+    """
     compact = normalize_flight_number(flight_number)
-    return db.execute(
+    rows = db.execute(
         base_observation_query()
         + """
         WHERE REPLACE(UPPER(f.flight_number), ' ', '') = ?
-          AND f.flight_date >= ?
-        ORDER BY f.flight_date
+        ORDER BY
+            f.flight_date,
+            f.scheduled_at IS NULL,
+            f.scheduled_at,
+            f.id
         """,
         compact,
-        start_date,
     )
+
+    # Choose a stable meaning for the flight number before filtering by date
+    daily_observations = first_observation_each_day(rows)
+    same_movement = dominant_movement(daily_observations)
+    recurring_routes = recurring_observation_routes(same_movement)
+
+    selected = []
+    for row in recurring_routes:
+        if row["flight_date"] >= start_date:
+            selected.append(row)
+    return selected
+
+
+def first_observation_each_day(rows):
+    """Keep the first row for each date from rows ordered by scheduled time."""
+    selected = []
+    dates_seen = set()
+
+    for row in rows:
+        date = row["flight_date"]
+        if date not in dates_seen:
+            selected.append(row)
+            dates_seen.add(date)
+
+    return selected
+
+
+def dominant_movement(rows):
+    """Keep the most frequently observed movement, preferring departures on a tie."""
+    counts = {"D": 0, "A": 0}
+    for row in rows:
+        counts[row["movement"]] += 1
+
+    movement = "D"
+    if counts["A"] > counts["D"]:
+        movement = "A"
+
+    selected = []
+    for row in rows:
+        if row["movement"] == movement:
+            selected.append(row)
+    return selected
+
+
+def observation_route(row):
+    """Return an origin-destination pair for a departure or arrival row."""
+    if row["movement"] == "D":
+        return row["airport_iata"], row["counterpart_iata"]
+    return row["counterpart_iata"], row["airport_iata"]
+
+
+def recurring_observation_routes(rows):
+    """Remove one-date route anomalies when the number has recurring routes."""
+    route_counts = {}
+
+    for row in rows:
+        route = observation_route(row)
+        route_counts[route] = route_counts.get(route, 0) + 1
+
+    if not route_counts or max(route_counts.values()) == 1:
+        return rows
+
+    selected = []
+    for row in rows:
+        route = observation_route(row)
+        if route_counts[route] > 1:
+            selected.append(row)
+
+    return selected
 
 
 def get_route_observations(db, origin, destination, start_date):
-    return db.execute(
+    # Prefer a departure observed at the requested origin
+    departures = db.execute(
         base_observation_query()
         + """
         WHERE f.flight_date >= ?
-          AND (
-              (
-                  f.movement = 'D'
-                  AND observed.iata = ?
-                  AND counterpart.iata = ?
-              )
-              OR
-              (
-                  f.movement = 'A'
-                  AND counterpart.iata = ?
-                  AND observed.iata = ?
-              )
-          )
+          AND f.movement = 'D'
+          AND observed.iata = ?
+          AND counterpart.iata = ?
         ORDER BY f.flight_date
         """,
         start_date,
         origin,
         destination,
+    )
+    if departures:
+        return departures
+
+    # International origins may only appear as an arrival at the destination
+    return db.execute(
+        base_observation_query()
+        + """
+        WHERE f.flight_date >= ?
+          AND f.movement = 'A'
+          AND counterpart.iata = ?
+          AND observed.iata = ?
+        ORDER BY f.flight_date
+        """,
+        start_date,
         origin,
         destination,
     )
@@ -188,6 +286,7 @@ def get_airline_observations(db, airline_code, start_date):
         JOIN airlines AS airline ON airline.id = f.airline_id
         WHERE UPPER(airline.iata) = ?
           AND f.flight_date >= ?
+          AND f.movement = 'D'
         ORDER BY f.flight_date
         """,
         airline_code,
@@ -195,6 +294,7 @@ def get_airline_observations(db, airline_code, start_date):
     )
 
 
+# Report calculations
 def median(values):
     """Return the middle value of a sorted list."""
     if not values:
@@ -209,108 +309,110 @@ def median(values):
     return (ordered[middle - 1] + ordered[middle]) / 2
 
 
+def format_percentage(value):
+    """Format a rate without rounding a positive value down to zero."""
+    if 0 < value < 0.1:
+        return "<0.1%"
+    return f"{value:.1f}%"
+
+
 def performance_label(on_time_rate, usable_observations):
+    """Return the translation key and color used for a performance result."""
     if usable_observations < 10:
-        return "Insufficient data", "neutral"
+        return "insufficient_data", "neutral"
     if on_time_rate >= 80:
-        return "Often near schedule", "good"
+        return "usually_near_schedule", "good"
     if on_time_rate >= 65:
-        return "Mixed timing", "warning"
-    return "Often more than 15 min late", "bad"
+        return "mixed_performance", "warning"
+    return "often_late", "bad"
 
 
-def calculate_metrics(rows):
+def calculate_metrics(rows, on_time_limit_seconds=DEPARTURE_ON_TIME_LIMIT_SECONDS):
     """Calculate all report metrics with explicit, explainable rules."""
+    # Count each source status before calculating percentages
     scheduled = 0
     cancelled = 0
-    not_operating = 0
-    excluded_outliers = 0
+    diverted = 0
     on_time = 0
     delays = []
 
     for row in rows:
-        status = row.get("status_en")
+        status = (row.get("status_en") or "").upper()
 
         if status == "NO OPERA":
-            not_operating += 1
             continue
 
         scheduled += 1
 
-        if status == "Cancelled":
+        if status == "CANCELLED":
             cancelled += 1
+            continue
+
+        # A diversion did not complete the scheduled movement as planned. It is
+        # assessed as outside the timing threshold even when the source happens to
+        # provide an event time, but that time is not used as a route delay.
+        if status == "DIVERTED":
+            diverted += 1
             continue
 
         delay = row.get("delay_seconds")
         if delay is None:
             continue
 
-        if abs(delay) > MAX_VALID_DELAY_SECONDS:
-            excluded_outliers += 1
+        # Long positive delays can be genuine and remain in the result. Very large
+        # negative values are normally a stale or mismatched date in the source, not
+        # a flight that operated many hours early.
+        if delay < -MAX_VALID_EARLY_SECONDS:
             continue
 
         delays.append(delay)
-        if delay <= ON_TIME_LIMIT_SECONDS:
+        if delay <= on_time_limit_seconds:
             on_time += 1
 
-    usable = len(delays)
+    # A diverted flight is usable, but it is outside the on-time threshold
+    usable = len(delays) + diverted
     on_time_rate = 0
     if usable:
         on_time_rate = on_time * 100 / usable
 
+    # Cancellation and diversion rates use all scheduled observations
     cancellation_rate = 0
+    diversion_rate = 0
     if scheduled:
         cancellation_rate = cancelled * 100 / scheduled
+        diversion_rate = diverted * 100 / scheduled
 
-    average_delay = None
     median_delay = None
     if delays:
-        average_delay = sum(delays) / len(delays) / 60
         median_delay = median(delays) / 60
 
-    label, tone = performance_label(on_time_rate, usable)
+    label_key, tone = performance_label(on_time_rate, usable)
 
     return {
         "observations": len(rows),
-        "scheduled": scheduled,
         "usable": usable,
         "cancelled": cancelled,
-        "not_operating": not_operating,
-        "excluded_outliers": excluded_outliers,
-        "on_time": on_time,
+        "diverted": diverted,
         "on_time_rate": round(on_time_rate, 1),
-        "cancellation_rate": round(cancellation_rate, 1),
-        "average_delay": round(average_delay, 1)
-        if average_delay is not None
-        else None,
+        "on_time_rate_display": format_percentage(on_time_rate),
+        "cancellation_rate_display": format_percentage(cancellation_rate),
+        "diversion_rate_display": format_percentage(diversion_rate),
         "median_delay": round(median_delay, 1)
         if median_delay is not None
         else None,
-        "label": label,
+        "label_key": label_key,
         "tone": tone,
     }
 
 
-def movement_rows(rows, movement):
-    selected = []
-    for row in rows:
-        if row["movement"] == movement:
-            selected.append(row)
-    return selected
-
-
+# Extra summaries shown below the main performance result
 def route_pairs(rows):
-    """Build origin-destination pairs without mixing arrivals and departures."""
+    """Build origin-destination pairs from the observed movement."""
     pairs = set()
     for row in rows:
-        if row["movement"] == "D":
-            origin = row["airport_iata"]
-            destination = row["counterpart_iata"]
-        else:
-            origin = row["counterpart_iata"]
-            destination = row["airport_iata"]
+        origin, destination = observation_route(row)
 
-        if origin and destination:
+        if valid_iata_code(origin) and valid_iata_code(destination):
             pairs.add((origin, destination))
 
     labels = []
@@ -319,30 +421,33 @@ def route_pairs(rows):
     return labels
 
 
-def monthly_trend(rows):
-    """Group observations by month and movement for simple CSS charts."""
+def invalid_route_count(rows):
+    """Count observations whose origin or destination has no valid IATA code."""
+    invalid = 0
+    for row in rows:
+        origin, destination = observation_route(row)
+        if not valid_iata_code(origin) or not valid_iata_code(destination):
+            invalid += 1
+    return invalid
+
+
+def monthly_trend(rows, on_time_limit_seconds):
+    """Group observations by month for simple CSS charts."""
     groups = {}
 
     for row in rows:
         month = row["flight_date"][:7]
-        key = (month, row["movement"])
-        if key not in groups:
-            groups[key] = []
-        groups[key].append(row)
+        if month not in groups:
+            groups[month] = []
+        groups[month].append(row)
 
     result = []
-    for key in sorted(groups):
-        month, movement = key
-        metrics = calculate_metrics(groups[key])
+    for month in sorted(groups):
+        metrics = calculate_metrics(groups[month], on_time_limit_seconds)
         result.append(
             {
                 "month": month,
-                "movement": movement,
-                "movement_label": "Departures"
-                if movement == "D"
-                else "Arrivals",
                 "on_time_rate": metrics["on_time_rate"],
-                "bar_width": metrics["on_time_rate"],
                 "usable": metrics["usable"],
             }
         )
@@ -359,11 +464,11 @@ def aircraft_summary(rows, limit=4):
     counts = {}
     identified = 0
 
+    # Ignore empty or ambiguous model names before counting them
     for row in rows:
-        model = row.get("aircraft_model")
-        if not model or not model.strip():
+        model = normalize_aircraft_model(row.get("aircraft_model"))
+        if not model:
             continue
-        model = model.strip()
         identified += 1
         counts[model] = counts.get(model, 0) + 1
 
@@ -382,19 +487,65 @@ def aircraft_summary(rows, limit=4):
 
     return {
         "identified": identified,
-        "missing": len(rows) - identified,
         "models": models,
     }
 
 
+def normalize_aircraft_model(model):
+    """Return a trustworthy aircraft model name or None for malformed values.
+
+    The source sometimes concatenates model names without a separator. Exact repeated
+    names can be safely collapsed; combinations of different models are discarded
+    because selecting one would misrepresent the source data.
+    """
+    if not model or not model.strip():
+        return None
+
+    model = model.strip()
+    starts = []
+
+    # Find where each possible aircraft name begins
+    for index in range(len(model)):
+        for prefix in AIRCRAFT_MODEL_PREFIXES:
+            if model.startswith(prefix, index):
+                starts.append(index)
+                break
+
+    if len(starts) < 2:
+        return model
+
+    parts = []
+    for index in range(len(starts)):
+        start = starts[index]
+        if index + 1 < len(starts):
+            end = starts[index + 1]
+        else:
+            end = len(model)
+        parts.append(model[start:end].strip())
+
+    if len(set(parts)) == 1:
+        return parts[0]
+    return None
+
+
 def build_report(rows):
-    departures = movement_rows(rows, "D")
-    arrivals = movement_rows(rows, "A")
+    # Arrivals and departures share a template but use their own threshold
+    movement = "D"
+    if rows:
+        movement = rows[0]["movement"]
+
+    if movement == "A":
+        threshold_seconds = ARRIVAL_ON_TIME_LIMIT_SECONDS
+    else:
+        threshold_seconds = DEPARTURE_ON_TIME_LIMIT_SECONDS
+
     return {
         "total_observations": len(rows),
-        "departure": calculate_metrics(departures),
-        "arrival": calculate_metrics(arrivals),
-        "trend": monthly_trend(rows),
+        "performance": calculate_metrics(rows, threshold_seconds),
+        "movement": movement,
+        "threshold_minutes": threshold_seconds // 60,
+        "trend": monthly_trend(rows, threshold_seconds),
         "routes": route_pairs(rows),
+        "invalid_route_observations": invalid_route_count(rows),
         "aircraft": aircraft_summary(rows),
     }

@@ -2,47 +2,55 @@
 
 {% block title %}{{ title }} · A Tiempo?{% endblock %}
 
-{% macro metric_panel(name, code, metrics) %}
+{% macro metric_panel(report) %}
+{% set metrics = report.performance %}
 <article class="movement-panel">
     <header>
-        <div>
-            <span class="movement-code">{{ code }}</span>
-            <h2>{{ name }}</h2>
+        <div class="movement-heading">
+            <span class="movement-code">{{ report.movement }}</span>
+            <div class="movement-title-row">
+                <h2>{{ t('arrivals' if report.movement == 'A' else 'departures') }}</h2>
+                {% if report.movement == "A" %}
+                <span class="arrival-context"><strong>{{ t('arrival_based') }}</strong> · {{ t('departure_not_covered') }}</span>
+                {% endif %}
+            </div>
         </div>
-        <span class="status-pill {{ metrics.tone }}">{{ metrics.label }}</span>
+        <div class="status-summary {{ metrics.tone }}" aria-label="{{ t('performance_result') }}">
+            <span class="status-kicker">{{ t('observed_performance') }}</span>
+            <span class="status-pill">{{ t(metrics.label_key, minutes=report.threshold_minutes) }}</span>
+        </div>
     </header>
 
     {% if metrics.observations == 0 %}
-    <p class="empty-state">No {{ name.lower() }} were recorded for this search.</p>
+    <p class="empty-state">{{ t('no_arrivals' if report.movement == 'A' else 'no_departures') }}</p>
     {% else %}
     <div class="primary-metric">
-        <strong>{{ metrics.on_time_rate }}%</strong>
-        <span>{{ "took off" if code == "D" else "landed" }} within 15 minutes of schedule</span>
+        <strong>{{ numeric(metrics.on_time_rate_display) }}</strong>
+        <span>{{ t('arrived_within' if report.movement == 'A' else 'departed_within', minutes=report.threshold_minutes) }}</span>
     </div>
 
     <dl class="metric-grid">
         <div>
-            <dt>Flights used</dt>
-            <dd>{{ "{:,}".format(metrics.usable) }}</dd>
+            <dt>{{ t('flights_analysed') }}</dt>
+            <dd>{{ number(metrics.usable) }}</dd>
         </div>
         <div>
-            <dt>Cancelled</dt>
-            <dd>{{ metrics.cancellation_rate }}%</dd>
+            <dt>{{ t('cancelled') }}</dt>
+            <dd>{% if metrics.cancelled == 0 %}{{ t('none_recorded') }}{% else %}{{ number(metrics.cancelled) }} ({{ numeric(metrics.cancellation_rate_display) }}){% endif %}</dd>
         </div>
         <div>
-            <dt>Average vs schedule</dt>
-            <dd>{% if metrics.average_delay is not none %}{{ metrics.average_delay }} min{% else %}—{% endif %}</dd>
+            <dt>{{ t('diverted') }}</dt>
+            <dd>{% if metrics.diverted == 0 %}{{ t('none_recorded') }}{% else %}{{ number(metrics.diverted) }} ({{ numeric(metrics.diversion_rate_display) }}){% endif %}</dd>
         </div>
         <div>
-            <dt>Typical difference (median)</dt>
-            <dd>{% if metrics.median_delay is not none %}{{ metrics.median_delay }} min{% else %}—{% endif %}</dd>
+            <dt>{{ t('typical_arrival' if report.movement == 'A' else 'typical_departure') }}</dt>
+            <dd>{% if metrics.median_delay is none %}—{% elif metrics.median_delay > 0 %}{{ t('minutes_late', value=numeric(metrics.median_delay)) }}{% elif metrics.median_delay < 0 %}{{ t('minutes_early', value=numeric(-metrics.median_delay)) }}{% else %}{{ t('on_schedule') }}{% endif %}</dd>
         </div>
     </dl>
 
-    <p class="quality-note">
-        {{ metrics.cancelled }} cancelled ·
-        {{ metrics.not_operating }} marked NO OPERA ·
-        {{ metrics.excluded_outliers }} invalid time differences removed
+    <p class="calculation-note">
+        {{ t('calculation_note') }}
+        <a href="{{ lurl('methodology') }}">{{ t('read_methodology') }}</a>
     </p>
     {% endif %}
 </article>
@@ -60,107 +68,152 @@
         {% for name, value in hidden_fields.items() %}
         <input type="hidden" name="{{ name }}" value="{{ value }}">
         {% endfor %}
-        <label for="period">Dates to include</label>
+        {% if lang == 'es' %}<input type="hidden" name="lang" value="es">{% endif %}
+        <label for="period">{{ t('dates_to_include') }}</label>
         <select id="period" name="period">
-            <option value="90" {% if period == "90" %}selected{% endif %}>Last 90 days in database</option>
-            <option value="365" {% if period == "365" %}selected{% endif %}>Last 365 days in database</option>
-            <option value="all" {% if period == "all" %}selected{% endif %}>Every stored date</option>
+            <option value="90" {% if period == "90" %}selected{% endif %}>{{ t('last_90_days') }}</option>
+            <option value="365" {% if period == "365" %}selected{% endif %}>{{ t('last_365_days') }}</option>
+            <option value="all" {% if period == "all" %}selected{% endif %}>{{ t('every_date') }}</option>
         </select>
-        <button class="secondary-button" type="submit">Update</button>
+        <button class="secondary-button" type="submit">{{ t('update') }}</button>
     </form>
 </section>
 
 <section class="report-meta">
-    <span><strong>{{ "{:,}".format(report.total_observations) }}</strong> records found</span>
+    <span>
+        <strong>{{ number(report.total_observations) }}</strong>
+        {% if report.movement == 'A' %}
+            {{ t('arrival_observation' if report.total_observations == 1 else 'arrival_observations') }}
+        {% else %}
+            {{ t('departure_observation' if report.total_observations == 1 else 'departure_observations') }}
+        {% endif %}
+    </span>
     {% if report.routes %}
-    <span><strong>Routes:</strong> {{ report.routes|join(", ") }}</span>
-    {% endif %}
-</section>
-
-<section class="aircraft-context" aria-labelledby="aircraft-heading">
-    <div class="aircraft-context-heading">
+    <div class="route-summary">
         <div>
-            <p class="eyebrow">Aircraft context</p>
-            <h2 id="aircraft-heading">Commonly recorded aircraft</h2>
+            <span class="route-summary-label">{{ t('route_coverage') }}</span>
+            <strong>{{ t('route_recorded' if report.routes|length == 1 else 'routes_recorded', count=report.routes|length) }}</strong>
         </div>
-        <p>Equipment can change. This is historical context, not the aircraft assigned to a future flight.</p>
+        <button
+            class="route-list-trigger"
+            type="button"
+            data-route-dialog-open
+            aria-haspopup="dialog"
+            aria-controls="route-dialog"
+        >{{ t('browse_routes') }}</button>
     </div>
-
-    {% if report.aircraft.models %}
-    <p class="aircraft-coverage">
-        Aircraft information appears in <strong>{{ "{:,}".format(report.aircraft.identified) }}</strong>
-        of {{ "{:,}".format(report.total_observations) }} records.
-    </p>
-    <div class="aircraft-list">
-        {% for aircraft in report.aircraft.models %}
-        <article class="aircraft-item">
-            <div>
-                <h3>{{ aircraft.model }}</h3>
-                <p>{{ "{:,}".format(aircraft.records) }} historical records</p>
-            </div>
-            <div class="aircraft-share">
-                <strong>{{ aircraft.share }}%</strong>
-                <span>of records with aircraft data</span>
-            </div>
-            <span class="aircraft-bar" aria-hidden="true">
-                <span style="width: {{ aircraft.share }}%"></span>
-            </span>
-        </article>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="empty-state">No aircraft model was recorded for this search.</p>
+    {% endif %}
+    {% if report.invalid_route_observations %}
+    <span>
+        <strong>{{ report.invalid_route_observations }}</strong>
+        {{ t('invalid_counterpart_one' if report.invalid_route_observations == 1 else 'invalid_counterpart_many') }}
+    </span>
     {% endif %}
 </section>
+
+{% if report.routes %}
+<dialog class="route-dialog" id="route-dialog" aria-labelledby="route-dialog-title">
+    <div class="route-dialog-header">
+        <div>
+            <p class="eyebrow">{{ t('route_coverage') }}</p>
+            <h2 id="route-dialog-title">{{ t('all_routes') }}</h2>
+            <p>{{ t('unique_direction' if report.routes|length == 1 else 'unique_directions', count=report.routes|length) }}</p>
+        </div>
+        <button class="route-dialog-close" type="button" data-route-dialog-close aria-label="{{ t('close_route_list') }}">×</button>
+    </div>
+    <ul class="route-list" id="route-list">
+        {% for route in report.routes %}
+        <li>{{ route }}</li>
+        {% endfor %}
+    </ul>
+</dialog>
+{% endif %}
 
 <section class="movement-grid">
-    {{ metric_panel("Departures", "D", report.departure) }}
-    {{ metric_panel("Arrivals", "A", report.arrival) }}
+    {{ metric_panel(report) }}
 </section>
 
-<section class="content-section section-card trend-section">
-    <div class="section-heading">
-        <div>
-            <p class="eyebrow">Month by month</p>
-            <h2>Did performance change over time?</h2>
+<details class="content-section section-card trend-section report-detail">
+    <summary class="trend-summary">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">{{ t('month_by_month') }}</p>
+                <h2>{{ t('performance_over_time') }}</h2>
+            </div>
+            <p>{{ t('longer_bar', minutes=report.threshold_minutes) }}</p>
         </div>
-        <p>A longer bar means more flights were within 15 minutes of schedule.</p>
-    </div>
+        <span class="trend-toggle">{{ t('view_details') }}</span>
+    </summary>
 
+    <div class="trend-content">
     {% if report.trend %}
     <div class="trend-table">
         <div class="trend-row trend-header" aria-hidden="true">
-            <span>Month</span>
-            <span>Movement</span>
-            <span>Within 15 min</span>
-            <span>Flights used</span>
+            <span>{{ t('month') }}</span>
+            <span>{{ t('within_minutes', minutes=report.threshold_minutes) }}</span>
+            <span>{{ t('sample_size') }}</span>
         </div>
         {% for row in report.trend %}
         <div class="trend-row">
             <span class="mono">{{ row.month }}</span>
-            <span>{{ row.movement_label }}</span>
             <span class="bar-cell">
                 <span class="bar-track">
-                    <span class="bar-fill" style="width: {{ row.bar_width }}%"></span>
+                    <span class="bar-fill" style="width: {{ row.on_time_rate }}%"></span>
                 </span>
-                <strong>{{ row.on_time_rate }}%</strong>
+                <strong>{{ numeric(row.on_time_rate) }}%</strong>
             </span>
-            <span class="mono">{{ row.usable }}</span>
+            <span class="trend-sample">
+                <strong>{{ number(row.usable) }}</strong>
+                <small>{{ t('flight' if row.usable == 1 else 'flights') }}</small>
+            </span>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p class="empty-state">There is not enough information to build a monthly history.</p>
+    <p class="empty-state">{{ t('no_monthly_history') }}</p>
     {% endif %}
-</section>
+    </div>
+</details>
 
-<section class="method-note">
-    <strong>How to read this report</strong>
-    <p>
-        For departures, this compares actual takeoff time (ATD) with scheduled
-        departure time (STD). It does not use airline off-block time. NO OPERA is
-        shown separately and is not treated as a cancellation. Read
-        <a href="{{ url_for('methodology') }}">methodology</a>.
-    </p>
-</section>
+<details class="content-section section-card trend-section aircraft-context report-detail">
+    <summary class="trend-summary">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">{{ t('aircraft_context') }}</p>
+                <h2 id="aircraft-heading">{{ t('common_aircraft') }}</h2>
+            </div>
+            <p>{{ t('equipment_context') }}</p>
+        </div>
+        <span class="trend-toggle">{{ t('view_details') }}</span>
+    </summary>
+
+    <div class="trend-content">
+        {% if report.aircraft.models %}
+        <p class="aircraft-coverage">
+            {{ t('aircraft_available') }} <strong>{{ number(report.aircraft.identified) }}</strong>
+            {{ t('of_flight' if report.total_observations == 1 else 'of_flights', count=number(report.total_observations)) }} (<strong>{{ numeric("%.1f"|format(report.aircraft.identified * 100 / report.total_observations)) }}%</strong>).
+        </p>
+        <div class="aircraft-list">
+            {% for aircraft in report.aircraft.models %}
+            <article class="aircraft-item">
+                <div>
+                    <h3>{{ aircraft.model }}</h3>
+                    <p>{{ t('historical_record' if aircraft.records == 1 else 'historical_records', count=number(aircraft.records)) }}</p>
+                </div>
+                <div class="aircraft-share">
+                    <strong>{{ numeric(aircraft.share) }}%</strong>
+                    <span>{{ t('of_identified_aircraft') }}</span>
+                </div>
+                <span class="aircraft-bar" aria-hidden="true">
+                    <span style="width: {{ aircraft.share }}%"></span>
+                </span>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">{{ t('no_aircraft') }}</p>
+        {% endif %}
+    </div>
+</details>
+
 {% endblock %}
