@@ -1,7 +1,5 @@
 # A Tiempo?
 
-#### Video Demo: https://youtu.be/3yXCROBEeno?si=cTByjVZUfGXx91Z
-
 ## Description
 
 A Tiempo? is a bilingual Flask application for exploring the historical performance
